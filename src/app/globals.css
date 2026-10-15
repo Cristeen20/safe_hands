@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+/* Design tokens from the "Book a Help" canvas (see CLAUDE.md). */
+@theme {
+  --color-ink: #14201e;
+  --color-primary: #0e4a43;
+  --color-primary-hover: #08302b;
+  --color-accent: #f2b33d;
+  --color-accent-soft: #fbe8c2;
+  --color-surface: #f7f7f4;
+  --color-card: #ffffff;
+  --color-field: #f2f3ef;
+  --color-border: #e2e4df;
+  --color-border-strong: #d5d8d3;
+  --color-muted: #5b6763;
+  --color-muted-strong: #4f5b57;
+  --color-primary-soft: #e3eeea;
+  --color-on-primary-soft: #c8dcd6;
+  --color-success: #1f8a5b;
+  --color-scrim: #4a524f;
+
+  --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-field: 14px;
+  --radius-button: 16px;
+  --radius-card: 20px;
+  --radius-sheet: 28px;
+}
+
+html {
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-accent);
+  outline-offset: 2px;
+}

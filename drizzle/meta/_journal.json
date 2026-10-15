@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1792029112419,
+      "tag": "0000_motionless_zodiak",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792030961252,
+      "tag": "0001_absent_mariko_yashida",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792034845720,
+      "tag": "0002_parallel_kat_farrell",
+      "breakpoints": true
+    }
+  ]
+}

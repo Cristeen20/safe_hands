@@ -1,0 +1,11 @@
+{
+  "Schedule": {
+    "addressPlaceholder": "Street and ZIP code"
+  },
+  "SignIn": {
+    "phonePlaceholder": "(415) 555-2671"
+  },
+  "When": {
+    "leadNotice": "Requests need at least 48 hours of notice so our team can approve them."
+  }
+}
