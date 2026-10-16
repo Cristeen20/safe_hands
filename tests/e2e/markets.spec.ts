@@ -5,7 +5,7 @@ const digits = (n: number) => String(Math.floor(Math.random() * 10 ** n)).padSta
 
 test("en-CA: local copy, Quebec notice, and local-format phone sign-in", async ({ page }) => {
   await page.goto("/en-CA/book");
-  await expect(page.getByLabel("Start location")).toHaveAttribute("placeholder", "Street and postal code");
+  await expect(page.getByLabel("From", { exact: true })).toHaveAttribute("placeholder", "Street and postal code");
   await expect(page.getByText("We can't take bookings in Quebec.")).toBeVisible();
 
   const typed = `416 555 ${digits(4)}`;
@@ -17,7 +17,7 @@ test("en-CA: local copy, Quebec notice, and local-format phone sign-in", async (
 
 test("en-IN: email-only sign-in, no phone option (D20)", async ({ page }) => {
   await page.goto("/en-IN/book");
-  await expect(page.getByLabel("Start location")).toHaveAttribute("placeholder", "Street, area and PIN code");
+  await expect(page.getByLabel("From", { exact: true })).toHaveAttribute("placeholder", "Street, area and PIN code");
 
   await page.goto("/en-IN/sign-in?next=/activity");
   await expect(page.getByLabel("Mobile number")).toHaveCount(0);

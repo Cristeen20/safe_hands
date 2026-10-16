@@ -4,10 +4,10 @@ import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import type { ServiceType } from "@/domain/booking";
 import { Link, useRouter } from "@/i18n/navigation";
-import { ArrowIcon, ClockIcon } from "@/components/ui/icons";
+import { ArrowIcon, ChevronIcon, ClockIcon } from "@/components/ui/icons";
 import { primaryButton } from "@/components/ui/styles";
 import { useHydrated } from "@/lib/use-hydrated";
-import { useBookingDraft } from "./draft-context";
+import { useBookingDraft, withService } from "./draft-context";
 
 /** A Home service card: picks the service type, then opens the booking form. */
 export function ServiceCardLink({
@@ -19,9 +19,9 @@ export function ServiceCardLink({
   className: string;
   children: ReactNode;
 }) {
-  const { update } = useBookingDraft();
+  const { draft, update } = useBookingDraft();
   return (
-    <Link href="/book" className={className} onClick={() => update({ serviceType })}>
+    <Link href="/book" className={className} onClick={() => update(withService(draft, serviceType))}>
       {children}
     </Link>
   );
@@ -42,10 +42,14 @@ export function QuickStartForm() {
         router.push("/book");
       }}
     >
-      <p className="flex items-center gap-2 self-start rounded-full bg-primary-soft px-3.5 py-2.5 text-sm font-semibold text-primary">
+      <Link
+        href="/book#step-3"
+        className="flex min-h-11 items-center gap-2 self-start rounded-full bg-primary-soft px-3.5 text-sm font-semibold text-primary no-underline hover:brightness-95"
+      >
         <ClockIcon size={16} />
-        {t("scheduledChip")}
-      </p>
+        {t("scheduleLater")}
+        <ChevronIcon size={14} strokeWidth={2.2} className="rotate-90" />
+      </Link>
       <div className="flex items-stretch gap-3">
         <div className="flex w-3.5 flex-col items-center py-5" aria-hidden="true">
           <div className="size-2.5 rounded-full border-[2.5px] border-ink" />

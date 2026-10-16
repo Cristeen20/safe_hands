@@ -2,7 +2,7 @@
 
 The product name isn't decided yet. "safe_hands" (the repo) and "bookahelp" (the design) are both placeholders. Keep the brand name in one config constant and never hard-code it in UI copy, emails, routes or database names.
 
-A responsive website for booking a person to help you: drive you somewhere, go with you to a hospital visit, or run an errand. You can book for yourself or for someone you care for, then follow the helper live as they complete each task.
+A responsive website for booking a person to help you: drive you somewhere, go with you to a hospital visit or the bank, look after your property, arrange a surprise gift, shoot an event, or take you on a guided tour. You can book for yourself or for someone you care for, then follow the helper live as they complete each task.
 
 The design comes from the "Book a Help" canvas: https://claude.ai/artifact/SNXWpVWk3k7MhXAx5QyStH. Its artboards are phone-app mockups drawn at 390 px wide. The canvas is the spec for content, fields and visual tokens. Layout follows D18 (a responsive website). Ask before changing anything else it defines.
 
@@ -52,6 +52,8 @@ Not built yet from the canvas:
 | D23 | **Rejections carry a reason the customer sees.** It's required; it goes in the rejection email and on the booking page. |
 | D24 | **How customers pay:**<ul><li>US, Canada and UK: Stripe hosted Checkout (redirect).</li><li>India: Razorpay Standard Checkout (pop-up).</li><li>Without provider keys (dev and tests only), a **dev provider** shows a local "simulate payment" page. Production refuses to take payment without keys.</li><li>Confirmation is idempotent (`recordPaymentSuccess` in `src/server/payments/fulfil.ts`). Webhooks, the return page and the Razorpay handler can all report the same payment safely.</li><li>A payment that lands after its quote expired or was declined is kept and flagged `late` for an admin to handle. There's no automatic refund (D16).</li></ul> |
 | D25 | **Every customer needs a real email for quotes.** Customers who signed in by phone are asked for one on the review page before submitting. |
+| D26 | **Seven services** (canvas Home and "Book a service"): hospital visit, driver, companion, property management, surprise gift, camera man and guided tour.<ul><li>Hospital visit, driver and companion have a route (from → to), a vehicle and an hours estimate. Drivers are booked for at least 3 hours, can drive the customer's own car, and can be booked for 2–30 days.</li><li>Property, gift and camera bookings have one location; camera bookings also have hours.</li><li>Which booking columns each service uses is defined by `bookingValues` in `src/domain/booking.ts`.</li><li>The old "errand" and "other" types became "companion" (migration 0003).</li></ul> |
+| D27 | **Guided tours go through the same request → quote → pay flow (D4).**<ul><li>Packages: pre-booking a package sends a request for N people, starting at the package's departure. The tours page shows how many people have pre-booked each package (requests that aren't rejected, declined or expired).</li><li>Staycations and custom trips have a day, time, length in days and party size.</li><li>Tour bookings are always for the customer themself.</li><li>Packages and stay locations live in `src/config/tours.ts` until there's an admin screen. Their departure dates are **samples** and must be replaced before launch.</li></ul> |
 
 ## Localisation (US, Canada, UK, India)
 
@@ -100,8 +102,9 @@ The canvas is a phone-app mockup. The product is a **responsive website** (D18).
 
 | Route | Canvas source | Page |
 | --- | --- | --- |
-| `/` | Home | Landing page: hero with a quick pickup→destination form, three service cards, and "How it works" |
-| `/book` | Schedule, When, For whom | **One page** with four numbered sections. A summary sidebar with "Review request" sits beside them on desktop and below them on phones. <ul><li>Where</li><li>When: day + time, from the first day 48 h ahead</li><li>Who for: me / someone else, with name + phone</li><li>Service details: type, vehicle, hours, task, flags</li></ul> |
+| `/` | Home | Follows the Home artboard: hero, "What do you need?" (hospital, driver, companion, guided tours, property management, something special), "How to use", and the "Ready to go?" quick form |
+| `/book` | Book a service, When, For whom | **One page** with five numbered sections. A summary sidebar with the service's call to action sits beside them on desktop and below them on phones. <ul><li>What do you need: service chips, plus a link to Guided tours</li><li>Where: from → to, or one location</li><li>When: day + time, from the first day 48 h ahead</li><li>Who for: me / someone else, with name + phone</li><li>Describe the service: the fields for the chosen service (D26)</li></ul> |
+| `/tours` | Guided tours | Packages / Staycation / Custom trip (D27) |
 | `/book/review` | (new) | Summary + "Submit request". Requires sign-in, then returns here. |
 | `/sign-in`, `/sign-in/verify` | Sign in, Verify | Centred card: phone number, then a 4-digit code |
 | `/activity` | Activity | "My bookings", grouped as waiting on our team / upcoming / past |
@@ -128,7 +131,7 @@ The canvas is a phone-app mockup. The product is a **responsive website** (D18).
 - **Customer**: has a phone (verified), an email, an optional Google identity, and saved payment methods.
 - **Quote**: amount, currency, an optional note, the admin who quoted it, and when. Add a new row for each re-quote.
 - **Recipient**: the person who receives the help. Either the user or a saved contact (name and phone).
-- **Booking**: service type, start location, service location, scheduled start, estimated hours, vehicle, description, flags (mobility, documents), recipient, price estimate, final price, payment, status.
+- **Booking**: service type, start location, service location, scheduled start, description, recipient, status, plus the per-service fields from D26/D27 (hours, vehicle, people accompanying, bystander, child seat, days, party size, food, stay, tour kind and package).
 - **Helper**: a user with the `helper` role. An admin assigns them to a booking. Has a live location while on the job.
 - **Task**: an ordered step inside a booking. The canvas shows Pickup → Check documents → Destination → Process → Drop back. Each step has a status (pending / current / done) and a timestamp.
 - **Booking status**: see **Booking lifecycle**. Every status change is recorded with who made it and when.
@@ -206,7 +209,7 @@ Copy `.env.example` to `.env.local` and set `DATABASE_URL` and `BETTER_AUTH_SECR
 ## Layout
 
 - `src/app/[locale]/`: pages.
-    - Customer pages are in the `(site)` route group, which adds the site header and footer: `/`, `/book`, `/book/review`, `/sign-in`, `/sign-in/verify`, `/activity`, `/helper`.
+    - Customer pages are in the `(site)` route group, which adds the site header and footer: `/`, `/book`, `/tours`, `/book/review`, `/sign-in`, `/sign-in/verify`, `/activity`, `/helper`.
     - Admin: `/admin/requests[/id]`, with its own desktop layout.
 - `src/app/api/auth/[...all]`: the Better Auth handler.
 - `src/domain/booking.ts`: pure business rules and the Zod request schema. Unit-tested.
@@ -223,7 +226,7 @@ Copy `.env.example` to `.env.local` and set `DATABASE_URL` and `BETTER_AUTH_SECR
 - `src/app/api/cron/`: scheduled jobs, protected by `CRON_SECRET`.
 - `src/components/site/`: header, footer and the shared page `container`.
 - `src/components/booking/`: the booking form and its sections. The draft booking lives in `draft-context.tsx` (sessionStorage) until it's submitted.
-- `src/config/brand.ts`: the product name (D12).
+- `src/config/brand.ts`: the product name (D12). `src/config/tours.ts`: tour packages and stay locations (D27).
 
 ## Working conventions
 

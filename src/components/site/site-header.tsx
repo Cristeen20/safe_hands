@@ -23,6 +23,12 @@ async function AccountLinks() {
         <Link href="/sign-in" className={navLink}>
           {t("logIn")}
         </Link>
+        <Link
+          href="/sign-in"
+          className="ml-1 rounded-full bg-ink px-4 py-2.5 text-[15px] font-semibold text-white no-underline hover:bg-ink/85"
+        >
+          {t("signUp")}
+        </Link>
       </>
     );
   }
@@ -42,6 +48,12 @@ async function AccountLinks() {
         {tn("activity")}
       </Link>
       <SignOutButton className={`${navLink} hidden cursor-pointer sm:block`} />
+      <Link
+        href="/book"
+        className="ml-1 rounded-full bg-primary px-4 py-2.5 text-[15px] font-semibold text-white no-underline hover:bg-primary-hover"
+      >
+        {tn("book")}
+      </Link>
     </>
   );
 }
@@ -61,15 +73,12 @@ export function SiteHeader() {
           <Link href="/#how-it-works" className={`${navLink} hidden md:block`}>
             {tn("howItWorks")}
           </Link>
+          <Link href="/tours" className={`${navLink} hidden lg:block`}>
+            {tn("tours")}
+          </Link>
           <Suspense fallback={<span className="w-16" />}>
             <AccountLinks />
           </Suspense>
-          <Link
-            href="/book"
-            className="ml-1 rounded-full bg-primary px-4 py-2.5 text-[15px] font-semibold text-white no-underline hover:bg-primary-hover"
-          >
-            {tn("book")}
-          </Link>
         </nav>
       </div>
     </header>

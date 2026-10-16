@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { STAY_LOCATIONS, findTourPackage } from "@/config/tours";
 import { REGIONS } from "@/lib/region";
 import { addDays, localDate, zonedToUtc } from "@/lib/time";
 
@@ -28,11 +29,52 @@ export const TIME_SLOTS = [
 /** How many days the When screen offers, starting at the first bookable day. */
 export const BOOKABLE_DAY_COUNT = 5;
 
-export const SERVICE_TYPES = ["hospital_visit", "driver", "errand", "other"] as const;
+export const SERVICE_TYPES = [
+  "hospital_visit",
+  "driver",
+  "companion",
+  "property",
+  "gift",
+  "camera",
+  "tour",
+] as const;
 export type ServiceType = (typeof SERVICE_TYPES)[number];
 
-export const VEHICLES = ["none", "small", "large"] as const;
+/** The services picked on /book. Guided tours have their own page (/tours). */
+export const BOOK_SERVICES = SERVICE_TYPES.filter(
+  (s): s is Exclude<ServiceType, "tour"> => s !== "tour",
+);
+
+/** Services with a pickup and a destination, a vehicle and an hours estimate. */
+export function isRouteService(s: ServiceType): s is "hospital_visit" | "driver" | "companion" {
+  return s === "hospital_visit" || s === "driver" || s === "companion";
+}
+
+export function hasHours(s: ServiceType): boolean {
+  return isRouteService(s) || s === "camera";
+}
+
+/** Drivers are booked for at least 3 hours (canvas). */
+export function minHours(s: ServiceType): number {
+  return s === "driver" ? 3 : 1;
+}
+export const MAX_HOURS = 12;
+
+export const VEHICLES = ["none", "own", "small", "large"] as const;
 export type Vehicle = (typeof VEHICLES)[number];
+
+/** A driver can drive the customer's own car; other helpers can come on foot. */
+export function vehiclesFor(s: ServiceType): readonly Vehicle[] {
+  return s === "driver" ? ["own", "small", "large"] : ["none", "small", "large"];
+}
+
+export const TOUR_KINDS = ["package", "stay", "custom"] as const;
+export type TourKind = (typeof TOUR_KINDS)[number];
+
+export const MAX_ACCOMPANYING = 6;
+export const MIN_DRIVER_DAYS = 2;
+export const MAX_DAYS = 30;
+export const MAX_PARTY_SIZE = 40;
 
 export const BOOKING_STATUSES = [
   "submitted",
@@ -144,6 +186,7 @@ export function canTransition(from: BookingStatus, to: BookingStatus, actor: Act
 }
 
 const nonEmpty = (max: number) => z.string().trim().min(1).max(max);
+const count = (min: number, max: number) => z.number().int().min(min).max(max);
 
 export const recipientSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("self") }),
@@ -155,11 +198,7 @@ export const recipientSchema = z.discriminatedUnion("kind", [
   }),
 ]);
 
-export const bookingRequestSchema = z.object({
-  region: z.enum(REGIONS),
-  serviceType: z.enum(SERVICE_TYPES),
-  startAddress: nonEmpty(200),
-  serviceAddress: nonEmpty(200),
+const when = {
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   time: z.enum(TIME_SLOTS),
   timeZone: z.string().refine((tz) => {
@@ -170,12 +209,192 @@ export const bookingRequestSchema = z.object({
       return false;
     }
   }, "Unknown time zone"),
-  estimatedHours: z.number().int().min(1).max(8),
-  vehicle: z.enum(VEHICLES),
+};
+
+const base = {
+  region: z.enum(REGIONS),
   description: z.string().trim().max(500).default(""),
-  needsMobilitySupport: z.boolean().default(false),
-  needsDocuments: z.boolean().default(false),
   recipient: recipientSchema,
-});
+  ...when,
+};
+
+const route = {
+  ...base,
+  startAddress: nonEmpty(200),
+  serviceAddress: nonEmpty(200),
+  vehicle: z.enum(["none", "small", "large"]),
+  estimatedHours: count(1, MAX_HOURS),
+};
+
+const place = { ...base, serviceAddress: nonEmpty(200) };
+
+// A tour party always includes the customer ("People · including you"), so
+// the booking is for them whatever the draft's recipient says.
+const tour = {
+  region: z.enum(REGIONS),
+  serviceType: z.literal("tour"),
+  partySize: count(1, MAX_PARTY_SIZE),
+  recipient: z.unknown().optional().transform(() => ({ kind: "self" as const })),
+};
+
+export const bookingRequestSchema = z.discriminatedUnion("serviceType", [
+  z.object({
+    ...route,
+    serviceType: z.literal("hospital_visit"),
+    accompanyingCount: count(0, MAX_ACCOMPANYING),
+    needsBystander: z.boolean().default(false),
+  }),
+  z.object({
+    ...route,
+    serviceType: z.literal("driver"),
+    vehicle: z.enum(["own", "small", "large"]),
+    estimatedHours: count(minHours("driver"), MAX_HOURS),
+    childSeat: z.boolean().default(false),
+    multiDay: z.boolean().default(false),
+    driverDays: count(MIN_DRIVER_DAYS, MAX_DAYS).default(MIN_DRIVER_DAYS),
+  }),
+  z.object({ ...route, serviceType: z.literal("companion") }),
+  z.object({ ...place, serviceType: z.literal("property") }),
+  z.object({ ...place, serviceType: z.literal("gift") }),
+  z.object({ ...place, serviceType: z.literal("camera"), estimatedHours: count(1, MAX_HOURS) }),
+  z.discriminatedUnion("tourKind", [
+    z.object({ ...tour, tourKind: z.literal("package"), tourPackage: nonEmpty(80) }),
+    z.object({
+      ...tour,
+      ...when,
+      tourKind: z.literal("stay"),
+      stayLocation: nonEmpty(80),
+      days: count(1, MAX_DAYS),
+      includeFood: z.boolean().default(false),
+    }),
+    z.object({
+      ...tour,
+      ...when,
+      tourKind: z.literal("custom"),
+      tourLocation: nonEmpty(200),
+      days: count(1, MAX_DAYS),
+      includeFood: z.boolean().default(false),
+      needsStay: z.boolean().default(false),
+      description: z.string().trim().max(500).default(""),
+    }),
+  ]),
+]);
 
 export type BookingRequest = z.infer<typeof bookingRequestSchema>;
+
+export class UnknownTourError extends Error {
+  constructor() {
+    super("That tour package or stay isn't available here.");
+    this.name = "UnknownTourError";
+  }
+}
+
+/** The booking columns a request turns into, one shape for every service. */
+export type BookingValues = {
+  serviceType: ServiceType;
+  startAddress: string;
+  serviceAddress: string;
+  scheduledStart: Date;
+  timeZone: string;
+  estimatedHours: number | null;
+  vehicle: Vehicle | null;
+  description: string;
+  accompanyingCount: number | null;
+  needsBystander: boolean;
+  childSeat: boolean;
+  days: number | null;
+  partySize: number | null;
+  includeFood: boolean;
+  needsStay: boolean;
+  tourKind: TourKind | null;
+  tourPackage: string | null;
+};
+
+const EMPTY_VALUES = {
+  startAddress: "",
+  estimatedHours: null,
+  vehicle: null,
+  description: "",
+  accompanyingCount: null,
+  needsBystander: false,
+  childSeat: false,
+  days: null,
+  partySize: null,
+  includeFood: false,
+  needsStay: false,
+  tourKind: null,
+  tourPackage: null,
+} satisfies Partial<BookingValues>;
+
+/**
+ * Flattens a validated request into booking columns. A package tour takes its
+ * start time from the package. Throws UnknownTourError for a package or stay
+ * that isn't offered in the request's region.
+ */
+export function bookingValues(req: BookingRequest): BookingValues {
+  if (req.serviceType === "tour") {
+    const tourCommon = { ...EMPTY_VALUES, serviceType: req.serviceType, tourKind: req.tourKind, partySize: req.partySize };
+    if (req.tourKind === "package") {
+      const pkg = findTourPackage(req.tourPackage);
+      if (!pkg || pkg.region !== req.region) throw new UnknownTourError();
+      return {
+        ...tourCommon,
+        serviceAddress: pkg.name,
+        tourPackage: pkg.id,
+        days: pkg.days,
+        scheduledStart: zonedToUtc(pkg.departs.date, pkg.departs.time, pkg.departs.timeZone),
+        timeZone: pkg.departs.timeZone,
+      };
+    }
+    const at = { scheduledStart: zonedToUtc(req.date, req.time, req.timeZone), timeZone: req.timeZone };
+    if (req.tourKind === "stay") {
+      if (!STAY_LOCATIONS[req.region].includes(req.stayLocation)) throw new UnknownTourError();
+      return { ...tourCommon, ...at, serviceAddress: req.stayLocation, days: req.days, includeFood: req.includeFood };
+    }
+    return {
+      ...tourCommon,
+      ...at,
+      serviceAddress: req.tourLocation,
+      days: req.days,
+      includeFood: req.includeFood,
+      needsStay: req.needsStay,
+      description: req.description,
+    };
+  }
+
+  const common = {
+    ...EMPTY_VALUES,
+    serviceType: req.serviceType,
+    serviceAddress: req.serviceAddress,
+    description: req.description,
+    scheduledStart: zonedToUtc(req.date, req.time, req.timeZone),
+    timeZone: req.timeZone,
+  };
+  switch (req.serviceType) {
+    case "hospital_visit":
+      return {
+        ...common,
+        startAddress: req.startAddress,
+        vehicle: req.vehicle,
+        estimatedHours: req.estimatedHours,
+        accompanyingCount: req.accompanyingCount,
+        needsBystander: req.needsBystander,
+      };
+    case "driver":
+      return {
+        ...common,
+        startAddress: req.startAddress,
+        vehicle: req.vehicle,
+        estimatedHours: req.estimatedHours,
+        childSeat: req.childSeat,
+        days: req.multiDay ? req.driverDays : null,
+      };
+    case "companion":
+      return { ...common, startAddress: req.startAddress, vehicle: req.vehicle, estimatedHours: req.estimatedHours };
+    case "camera":
+      return { ...common, estimatedHours: req.estimatedHours };
+    case "property":
+    case "gift":
+      return common;
+  }
+}

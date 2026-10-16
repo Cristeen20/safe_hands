@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   QuoteExpiredError,
+  UnknownTourError,
   assertMinLeadTime,
   bookableDays,
   bookingRequestSchema,
+  bookingValues,
   canTransition,
   firstBookableDay,
   isSlotBookable,
@@ -143,8 +145,8 @@ describe("bookingRequestSchema", () => {
     estimatedHours: 2,
     vehicle: "small",
     description: "Help with check-in.",
-    needsMobilitySupport: true,
-    needsDocuments: false,
+    accompanyingCount: 1,
+    needsBystander: true,
     recipient: { kind: "self" },
   };
 
@@ -152,8 +154,8 @@ describe("bookingRequestSchema", () => {
     expect(bookingRequestSchema.safeParse(valid).success).toBe(true);
   });
 
-  it("rejects hours outside 1–8, unknown slots and long descriptions", () => {
-    expect(bookingRequestSchema.safeParse({ ...valid, estimatedHours: 9 }).success).toBe(false);
+  it("rejects hours outside 1–12, unknown slots and long descriptions", () => {
+    expect(bookingRequestSchema.safeParse({ ...valid, estimatedHours: 13 }).success).toBe(false);
     expect(bookingRequestSchema.safeParse({ ...valid, time: "15:00" }).success).toBe(false);
     expect(bookingRequestSchema.safeParse({ ...valid, description: "x".repeat(501) }).success).toBe(
       false,
@@ -165,5 +167,86 @@ describe("bookingRequestSchema", () => {
       bookingRequestSchema.safeParse({ ...valid, recipient: { kind: "other", firstName: "Anu" } })
         .success,
     ).toBe(false);
+  });
+
+  it("books drivers for at least 3 hours, and only drivers can use your own car", () => {
+    const driver = { ...valid, serviceType: "driver", estimatedHours: 3, vehicle: "own" };
+    expect(bookingRequestSchema.safeParse(driver).success).toBe(true);
+    expect(bookingRequestSchema.safeParse({ ...driver, estimatedHours: 2 }).success).toBe(false);
+    expect(bookingRequestSchema.safeParse({ ...valid, vehicle: "own" }).success).toBe(false);
+  });
+
+  it("needs only one location for property, gift and camera bookings", () => {
+    const gift = { ...valid, serviceType: "gift", startAddress: "" };
+    expect(bookingRequestSchema.safeParse(gift).success).toBe(true);
+    expect(bookingRequestSchema.safeParse({ ...gift, serviceAddress: " " }).success).toBe(false);
+    expect(bookingRequestSchema.safeParse({ ...valid, serviceType: "companion", startAddress: "" }).success).toBe(false);
+  });
+
+  it("parses each kind of tour", () => {
+    const tour = { region: "IN", serviceType: "tour", partySize: 3, recipient: { kind: "other" } };
+    const pkg = bookingRequestSchema.safeParse({ ...tour, tourKind: "package", tourPackage: "munnar-vagamon" });
+    expect(pkg.success && pkg.data.recipient).toEqual({ kind: "self" });
+    const dated = { ...tour, date: "2026-11-02", time: "09:00", timeZone: "Asia/Kolkata", days: 2 };
+    expect(bookingRequestSchema.safeParse({ ...dated, tourKind: "stay", stayLocation: "Munnar" }).success).toBe(true);
+    expect(bookingRequestSchema.safeParse({ ...dated, tourKind: "custom", tourLocation: "Kochi" }).success).toBe(true);
+    expect(bookingRequestSchema.safeParse({ ...dated, tourKind: "custom" }).success).toBe(false);
+    expect(bookingRequestSchema.safeParse({ ...tour, tourKind: "stay", stayLocation: "Munnar", days: 2 }).success).toBe(false);
+  });
+});
+
+describe("bookingValues", () => {
+  const parse = (input: object) => bookingRequestSchema.parse(input);
+
+  it("keeps only the fields of the chosen service", () => {
+    const v = bookingValues(
+      parse({
+        region: "GB",
+        serviceType: "driver",
+        startAddress: "24 Elm Street",
+        serviceAddress: "Airport",
+        date: "2026-10-20",
+        time: "09:00",
+        timeZone: "Europe/London",
+        estimatedHours: 4,
+        vehicle: "own",
+        childSeat: true,
+        multiDay: false,
+        driverDays: 5,
+        accompanyingCount: 3,
+        recipient: { kind: "self" },
+      }),
+    );
+    expect(v).toMatchObject({ serviceType: "driver", days: null, childSeat: true, accompanyingCount: null });
+    expect(v.scheduledStart.toISOString()).toBe("2026-10-20T08:00:00.000Z");
+  });
+
+  it("starts a package tour at its departure", () => {
+    const v = bookingValues(
+      parse({ region: "IN", serviceType: "tour", tourKind: "package", tourPackage: "munnar-vagamon", partySize: 2 }),
+    );
+    expect(v).toMatchObject({ serviceAddress: "Munnar + Vagamon", tourPackage: "munnar-vagamon", partySize: 2, days: 3 });
+    expect(v.scheduledStart.toISOString()).toBe("2026-11-21T00:30:00.000Z");
+  });
+
+  it("rejects packages and stays from another region", () => {
+    expect(() =>
+      bookingValues(parse({ region: "GB", serviceType: "tour", tourKind: "package", tourPackage: "munnar-vagamon", partySize: 2 })),
+    ).toThrow(UnknownTourError);
+    expect(() =>
+      bookingValues(
+        parse({
+          region: "GB",
+          serviceType: "tour",
+          tourKind: "stay",
+          stayLocation: "Munnar",
+          days: 2,
+          partySize: 2,
+          date: "2026-11-02",
+          time: "09:00",
+          timeZone: "Europe/London",
+        }),
+      ),
+    ).toThrow(UnknownTourError);
   });
 });

@@ -117,3 +117,53 @@ export const MinusIcon = (p: IconProps) => (
     <path d="M5 12h14" />
   </Svg>
 );
+export const KeyIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="8" cy="15" r="4" />
+    <path d="M11 12.2 19 4.5M16 7.5l2.5 2.5M14 9.5l2 2" />
+  </Svg>
+);
+export const MapIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M9 4 3.5 6v14L9 18l6 2 5.5-2V4L15 6z" />
+    <path d="M9 4v14M15 6v14" />
+  </Svg>
+);
+export const CompanionIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="8" cy="6" r="2.4" />
+    <circle cx="16.5" cy="6.5" r="2.2" />
+    <path d="M4.5 21v-5.5a3.5 3.5 0 0 1 7 0V21M13.5 21v-5a3 3 0 0 1 6 0v5M11.5 14.5h2" />
+  </Svg>
+);
+export const SteeringIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <circle cx="12" cy="12" r="2.2" />
+    <path d="M3.5 10.5h6.3M14.2 10.5h6.3M12 14.2V21" />
+  </Svg>
+);
+export const GiftIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="3.5" y="9" width="17" height="11" rx="1.5" />
+    <path d="M2.5 9h19M12 9v11M12 9c-1.5-3.5-5.5-4-5.5-1.5S12 9 12 9zM12 9c1.5-3.5 5.5-4 5.5-1.5S12 9 12 9z" />
+  </Svg>
+);
+export const CameraIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 8h3l2-2.5h6L17 8h3v11H4z" />
+    <circle cx="12" cy="13" r="3.5" />
+  </Svg>
+);
+export const InfoIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 11v5M12 8h.01" />
+  </Svg>
+);
+export const GroupIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="9" cy="8" r="3.2" />
+    <path d="M3 20a6 6 0 0 1 12 0M16 4.5a3.2 3.2 0 0 1 0 6.3M21 20a6 6 0 0 0-4-5.6" />
+  </Svg>
+);

@@ -5,6 +5,7 @@ import { toMajor } from "@/domain/money";
 import { requireUser } from "@/lib/authz";
 import { formatPhone } from "@/lib/phone";
 import { getCustomerBooking } from "@/server/queries";
+import { placeLabel, serviceDetails } from "@/components/booking/service-details";
 import { ConfirmingRefresh } from "@/components/booking/confirming-refresh";
 import { QuoteActions } from "@/components/booking/quote-actions";
 import { container } from "@/components/site/container";
@@ -23,9 +24,11 @@ async function BookingDetail({
   const { id } = await params;
   const user = await requireUser({ next: `/activity/${id}` });
   const search = await searchParams;
-  const [t, ts, tst, format] = await Promise.all([
+  const [t, ts, tv, td, tst, format] = await Promise.all([
     getTranslations("Booking"),
     getTranslations("ServiceType"),
+    getTranslations("Vehicle"),
+    getTranslations("Details"),
     getTranslations("Status"),
     getFormatter(),
   ]);
@@ -96,14 +99,12 @@ async function BookingDetail({
         <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-[minmax(0,9rem)_1fr]">
           <dt className="text-sm font-semibold text-muted">{t("service")}</dt>
           <dd>
-            {ts(b.serviceType)} · {t("hours", { count: b.estimatedHours })}
+            {[ts(b.serviceType), ...serviceDetails(b, td, tv)].join(" · ")}
           </dd>
           <dt className="text-sm font-semibold text-muted">{t("when")}</dt>
           <dd>{inZone(b.scheduledStart, { dateStyle: "full", timeStyle: "short" })}</dd>
           <dt className="text-sm font-semibold text-muted">{t("where")}</dt>
-          <dd>
-            {b.startAddress} → {b.serviceAddress}
-          </dd>
+          <dd>{placeLabel(b)}</dd>
           <dt className="text-sm font-semibold text-muted">{t("forWhom")}</dt>
           <dd>
             {r.isSelf

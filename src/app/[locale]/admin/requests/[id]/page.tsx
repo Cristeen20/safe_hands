@@ -8,16 +8,18 @@ import { formatPhone } from "@/lib/phone";
 import { REGION_CONFIG } from "@/lib/region";
 import { getRequestForAdmin } from "@/server/queries";
 import { RequestActions } from "@/components/admin/request-actions";
+import { placeLabel, serviceDetails } from "@/components/booking/service-details";
 import { BackLink } from "@/components/ui/back-link";
 import { card, displayHeading } from "@/components/ui/styles";
 
 async function RequestDetail({ params }: { params: Promise<{ id: string }> }) {
   await requireRole("admin");
   const { id } = await params;
-  const [t, ts, tv, tst, format, locale] = await Promise.all([
+  const [t, ts, tv, td, tst, format, locale] = await Promise.all([
     getTranslations("Admin"),
     getTranslations("ServiceType"),
     getTranslations("Vehicle"),
+    getTranslations("Details"),
     getTranslations("Status"),
     getFormatter(),
     getLocale(),
@@ -31,15 +33,15 @@ async function RequestDetail({ params }: { params: Promise<{ id: string }> }) {
   const money = (minor: number, cur: string) => format.number(toMajor(minor), { style: "currency", currency: cur });
   const inBookingZone = (d: Date) =>
     format.dateTime(d, { dateStyle: "medium", timeStyle: "short", timeZone: b.timeZone });
-  const flags = [b.needsMobilitySupport && "Mobility support", b.needsDocuments && "Documents"].filter(Boolean);
 
   const fields: [string, React.ReactNode][] = [
     [
       t("colWhen"),
       `${format.dateTime(b.scheduledStart, { dateStyle: "full", timeStyle: "short", timeZone: b.timeZone })} (${b.timeZone})`,
     ],
-    [t("colService"), `${ts(b.serviceType)} · ${tv(b.vehicle)} · ${t("hours", { count: b.estimatedHours })}`],
-    [t("colRoute"), `${b.startAddress} → ${b.serviceAddress}`],
+    [t("colService"), ts(b.serviceType)],
+    [t("details"), serviceDetails(b, td, tv).join(" · ") || "—"],
+    [t("colRoute"), placeLabel(b)],
     [
       t("customer"),
       [row.customerName, row.customerPhone && formatPhone(row.customerPhone), row.customerEmail]
@@ -53,7 +55,6 @@ async function RequestDetail({ params }: { params: Promise<{ id: string }> }) {
         : `${r.firstName} ${r.lastName}`.trim() + (r.phoneE164 ? ` · ${formatPhone(r.phoneE164)}` : ""),
     ],
     [t("description"), b.description || "—"],
-    [t("flags"), flags.length ? flags.join(", ") : t("none")],
   ];
   if (row.quote) {
     fields.push([

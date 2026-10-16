@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, notInArray, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/db";
 import { booking, bookingEvent, payment, quote, recipient, user } from "@/db/schema";
@@ -94,4 +94,27 @@ export async function getRequestForAdmin(id: string) {
       .orderBy(asc(bookingEvent.at)),
   ]);
   return { ...row, payments, events };
+}
+
+/**
+ * People already pre-booked on each tour package, by package id. Counts every
+ * request still live or done (not rejected, declined or expired). Public: it's
+ * shown on the tours page.
+ */
+export async function tourPartyCounts(packageIds: string[]): Promise<Record<string, number>> {
+  if (packageIds.length === 0) return {};
+  const rows = await db
+    .select({
+      tourPackage: booking.tourPackage,
+      people: sql<number>`coalesce(sum(${booking.partySize}), 0)::int`,
+    })
+    .from(booking)
+    .where(
+      and(
+        inArray(booking.tourPackage, packageIds),
+        notInArray(booking.status, ["rejected", "declined", "expired"]),
+      ),
+    )
+    .groupBy(booking.tourPackage);
+  return Object.fromEntries(rows.map((r) => [r.tourPackage, r.people]));
 }

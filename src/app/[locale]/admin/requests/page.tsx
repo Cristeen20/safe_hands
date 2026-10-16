@@ -6,6 +6,7 @@ import { Link } from "@/i18n/navigation";
 import { requireRole } from "@/lib/authz";
 import { formatPhone } from "@/lib/phone";
 import { listRequestsByStatus } from "@/server/queries";
+import { placeLabel } from "@/components/booking/service-details";
 import { card, displayHeading } from "@/components/ui/styles";
 
 const TABS = {
@@ -83,7 +84,7 @@ async function Queue({ searchParams }: { searchParams: Promise<{ tab?: string }>
                   </td>
                   <td className="px-4 py-3">{ts(r.serviceType)}</td>
                   <td className="px-4 py-3">
-                    {r.startAddress} → {r.serviceAddress}
+                    {placeLabel(r)}
                   </td>
                   <td className="px-4 py-3">
                     {r.customerName || (r.customerPhone ? formatPhone(r.customerPhone) : "—")}

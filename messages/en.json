@@ -12,16 +12,22 @@
   "ServiceType": {
     "hospital_visit": "Hospital visit",
     "driver": "Driver",
-    "errand": "Errand",
-    "other": "Other"
+    "companion": "Companion",
+    "property": "Property management",
+    "gift": "Surprise gift",
+    "camera": "Camera man",
+    "tour": "Guided tour"
   },
   "Vehicle": {
     "none": "No vehicle",
-    "noneSub": "Helper meets you on foot or transit",
+    "noneSub": "Meets you on foot or transit",
+    "own": "My own car",
+    "ownSub": "Driver drives your vehicle",
     "small": "Small vehicle",
     "smallSub": "Car · up to 3 people",
     "large": "Large vehicle",
-    "largeSub": "Van · wheelchair or bulky items"
+    "largeSub": "Van · wheelchair or bulky items",
+    "largeSubDriver": "Van · luggage or groups"
   },
   "Status": {
     "submitted": "Awaiting approval",
@@ -36,61 +42,120 @@
   },
   "Home": {
     "heroTitle": "Book a help.",
-    "heroBody": "Someone to drive you, sit with you at the hospital, or run the errand — booked ahead and approved by our team.",
+    "heroBody": "A driver, a hospital companion, a day out or a guided tour — booked in a minute.",
+    "heroNote": "",
     "whatNeed": "What do you need?",
     "mostBooked": "Most booked",
     "hospitalTitle": "Book a hospital visit",
     "hospitalBody": "A companion from door to doctor and back",
     "driverTitle": "Book a driver",
-    "anyTitle": "Book any help",
-    "howTitle": "How it works",
+    "driverBody": "By the hour or for multiple days",
+    "companionTitle": "Companion",
+    "companionBody": "To the bank, office and more",
+    "toursTitle": "Guided tours",
+    "toursBody": "Packages, staycations and custom trips",
+    "propertyTitle": "Property management",
+    "propertyBody": "Home visits and management",
+    "propertyMore": "Someone to check on your home while you're away — visits, keys, deliveries and small fixes arranged for you.",
+    "propertyCta": "Request a home visit",
+    "special": "Something special",
+    "giftTitle": "Surprise gift",
+    "cameraTitle": "Camera man",
+    "howTitle": "How to use {brand}",
     "step1Title": "Tell us where and when",
-    "step1Body": "Pickup, the place you need to go, and a day and time at least 48 hours ahead.",
-    "step2Title": "Get a quote",
-    "step2Body": "Our team reviews your request and sends you a price to accept.",
+    "step1Body": "Pickup, the place you need to go, and a day and time.",
+    "step2Title": "Pick the help you need",
+    "step2Body": "Hospital visit, driver, companion or tour — for you or someone you care for.",
     "step3Title": "Follow every step live",
     "step3Body": "See your helper on the map and each task as it's done.",
     "readyTitle": "Ready to go?",
-    "scheduledChip": "Scheduled · at least 48 hours ahead",
+    "scheduleLater": "Schedule for later",
     "pickup": "Pickup",
     "pickupPlaceholder": "Where should we meet you?",
     "destination": "Destination",
     "destinationPlaceholder": "Hospital, bank, post office…",
-    "requestQuote": "Request a quote",
-    "driverBody": "A safe ride there and back, with help in and out",
-    "anyBody": "Errands, appointments, paperwork — tell us what you need",
-    "heroNote": ""
+    "requestQuote": "Request a quote"
   },
   "Schedule": {
     "title": "Schedule a help",
-    "startLocation": "Start location",
-    "serviceLocation": "Service location",
     "addressPlaceholder": "Street and postcode",
     "when": "When",
     "whenUnset": "Pick a day and time",
     "forWhom": "For whom",
     "forMe": "For me",
     "describeTitle": "Describe the service",
-    "kindLegend": "What kind of help?",
-    "vehicleLegend": "Vehicle required",
     "hours": "Hours needed",
-    "hoursSub": "Estimate · billed for time used",
     "hoursValue": "{count, plural, one {# hr} other {# hrs}}",
     "fewerHours": "Fewer hours",
     "moreHours": "More hours",
-    "task": "Describe the task",
-    "taskPlaceholder": "What should the helper do? Include anything they should bring or know.",
     "counter": "{count} / 500",
-    "mobility": "Mobility support (walker or wheelchair)",
-    "documents": "Helper should bring or check documents",
-    "continue": "Review request",
     "intro": "Tell us where, when and what you need. Our team reviews every request and sends you a quote.",
     "whereTitle": "Where",
     "summaryTitle": "Your request",
     "service": "Service",
-    "incomplete": "Add both addresses, a day and time, and — if it's for someone else — their name and phone.",
+    "incomplete": "Add the location, a day and time, and — if it's for someone else — their name and phone.",
     "quoteNote": "No payment now. You'll get a quote by email and pay only if you accept it.",
-    "regionNote": ""
+    "regionNote": "",
+    "serviceTitle": "What do you need?",
+    "serviceLegend": "Service",
+    "guidedTours": "Guided tours",
+    "from": "From",
+    "to": "To",
+    "destPlaceholder": {
+      "hospital_visit": "Which hospital?",
+      "driver": "Where are you going?",
+      "companion": "Bank, office, shop…"
+    },
+    "placeLabel": {
+      "property": "Property address",
+      "gift": "Deliver to",
+      "camera": "Event location"
+    },
+    "placePlaceholder": {
+      "property": "Address of the home to visit",
+      "gift": "Who and where should we surprise?",
+      "camera": "Where is the shoot?"
+    },
+    "vehicle": "Vehicle",
+    "hoursHint": "Estimate · billed for time used",
+    "hoursHintDriver": "Minimum 3 hrs · billed for time used",
+    "accompanying": "People accompanying",
+    "accompanyingSub": "Family travelling with the patient",
+    "fewerPeople": "Fewer people",
+    "morePeople": "More people",
+    "bystander": "I need a bystander",
+    "bystanderSub": "Someone to stay with the patient at the hospital",
+    "childSeat": "Child seat needed",
+    "multiDay": "Needed for multiple days?",
+    "multiDaySub": "Same driver for the whole trip",
+    "numberOfDays": "Number of days",
+    "fewerDays": "Fewer days",
+    "moreDays": "More days",
+    "companionNote": "Your companion can also help with additional tasks along the way — forms, queues, carrying things. Describe them below.",
+    "descLabel": {
+      "hospital_visit": "Description",
+      "driver": "Description",
+      "companion": "Describe additional help needed",
+      "property": "What should we take care of?",
+      "gift": "Describe the surprise",
+      "camera": "Describe the shoot"
+    },
+    "descPlaceholder": {
+      "hospital_visit": "Appointment time, department, medication list to bring…",
+      "driver": "Stops on the way, luggage, anything the driver should know…",
+      "companion": "Fill forms at the bank, wait in the queue, carry shopping…",
+      "property": "Home visit, keys, cleaning check, repairs to arrange…",
+      "gift": "Occasion, gift ideas, budget, message to include…",
+      "camera": "Occasion, photos or video, number of people…"
+    },
+    "cta": {
+      "hospital_visit": "Continue",
+      "driver": "Continue",
+      "companion": "Continue",
+      "property": "Request a visit",
+      "gift": "Discuss quote",
+      "camera": "Discuss quote"
+    }
   },
   "When": {
     "title": "When do you need the service?",
@@ -152,9 +217,6 @@
     "when": "When",
     "forWhom": "For whom",
     "details": "Details",
-    "hours": "{count, plural, one {# hour} other {# hours}}",
-    "mobility": "Mobility support",
-    "documents": "Bring or check documents",
     "submit": "Submit request",
     "submitting": "Submitting…",
     "incomplete": "Some details are missing. Go back and finish your request.",
@@ -165,7 +227,8 @@
     "emailLabel": "Where should we email your quote?",
     "emailHint": "We only use it for updates about your bookings.",
     "invalidEmail": "Enter a valid email address so we can send your quote.",
-    "emailTaken": "That email belongs to another account. Sign in with it instead, or use a different one."
+    "emailTaken": "That email belongs to another account. Sign in with it instead, or use a different one.",
+    "backToTours": "Back to guided tours"
   },
   "Activity": {
     "title": "My bookings",
@@ -184,7 +247,8 @@
     "howItWorks": "How it works",
     "activity": "My bookings",
     "admin": "Admin",
-    "jobs": "My jobs"
+    "jobs": "My jobs",
+    "tours": "Guided tours"
   },
   "Admin": {
     "title": "Admin",
@@ -201,10 +265,7 @@
     "recipient": "Receiving help",
     "customer": "Customer",
     "self": "The customer",
-    "hours": "{count, plural, one {# hour} other {# hours}}",
     "description": "Task",
-    "flags": "Needs",
-    "none": "None",
     "notFound": "Request not found.",
     "tabs": {
       "submitted": "Awaiting quote",
@@ -239,7 +300,8 @@
     "payments": "Payments",
     "latePayment": "Paid after the quote closed: handle manually",
     "historyTitle": "History",
-    "system": "System"
+    "system": "System",
+    "details": "Details"
   },
   "Helper": {
     "title": "Your jobs",
@@ -275,7 +337,6 @@
     "when": "When",
     "forWhom": "For whom",
     "you": "You",
-    "hours": "{count, plural, one {# hour} other {# hours}}",
     "awaiting": "Our team is reviewing your request. We’ll email your quote.",
     "quoteTitle": "Your quote",
     "validUntil": "Valid until {date}",
@@ -308,5 +369,74 @@
     "succeed": "Simulate payment succeeded",
     "fail": "Simulate payment failed",
     "back": "Back to the booking"
+  },
+  "ServiceChip": {
+    "hospital_visit": "Hospital visit",
+    "driver": "Driver",
+    "companion": "Companion",
+    "property": "Property",
+    "gift": "Surprise gift",
+    "camera": "Camera man"
+  },
+  "Tours": {
+    "title": "Guided tours",
+    "intro": {
+      "package": "Join a group tour or pilgrimage — see how many have already booked.",
+      "stay": "A private staycation at one of our available stays.",
+      "custom": "Custom trips are private trips to the places you choose. Mention if you need a stay."
+    },
+    "tabsLabel": "Tour type",
+    "tab": {
+      "package": "Packages",
+      "stay": "Staycation",
+      "custom": "Custom trip"
+    },
+    "packagesLegend": "Group tours & pilgrimages",
+    "kind": {
+      "pilgrimage": "Pilgrimage",
+      "group_tour": "Group tour"
+    },
+    "length": "{days, plural, one {# day} other {# days}} · {nights, plural, one {# night} other {# nights}}",
+    "departs": "Departs {date}",
+    "preBooked": "{count} pre-booked",
+    "noPackages": "No group tours are open for booking right now.",
+    "stayLabel": "Pick a location",
+    "staySub": "Private stays where we have a place available",
+    "noStays": "No stays are available here yet. Try a custom trip.",
+    "location": "Location",
+    "locationPlaceholder": "Where would you like to go?",
+    "days": "Days",
+    "fewerDays": "Fewer days",
+    "moreDays": "More days",
+    "people": "People",
+    "peopleSub": "Including you",
+    "fewerPeople": "Fewer people",
+    "morePeople": "More people",
+    "includeFood": "Include food",
+    "provideFood": "Provide food",
+    "needStay": "I need a stay",
+    "description": "Description",
+    "descriptionPlaceholder": "Places to cover, pace, who's travelling, budget…",
+    "whenTitle": "When do you want to go?",
+    "preBook": "{count, plural, one {Pre-book for # person} other {Pre-book for # people}}",
+    "checkAvailability": "Check availability",
+    "discussQuote": "Discuss quote",
+    "quoteNote": "No payment now. Our team confirms availability and emails you a quote.",
+    "incomplete": "Pick a package, stay or place, and a day and time to start."
+  },
+  "Details": {
+    "hours": "{count, plural, one {# hr} other {# hrs}}",
+    "days": "{count, plural, one {# day} other {# days}}",
+    "people": "{count, plural, one {# person} other {# people}}",
+    "accompanying": "{count, plural, =0 {No one accompanying} one {# person accompanying} other {# people accompanying}}",
+    "bystander": "Needs a bystander",
+    "childSeat": "Child seat",
+    "food": "Food included",
+    "stay": "Needs a stay",
+    "tourKind": {
+      "package": "Package",
+      "stay": "Staycation",
+      "custom": "Custom trip"
+    }
   }
 }

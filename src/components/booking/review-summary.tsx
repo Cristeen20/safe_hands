@@ -3,11 +3,14 @@
 import { useState, useTransition } from "react";
 import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
+import { bookingRequestSchema, bookingValues, type BookingValues } from "@/domain/booking";
 import { formatPhone } from "@/lib/phone";
-import { zonedToUtc } from "@/lib/time";
+import { regionForLocale, type AppLocale } from "@/lib/region";
 import { submitBookingRequest } from "@/server/bookings";
+import { BackLink } from "@/components/ui/back-link";
 import { card, primaryButton, textInput } from "@/components/ui/styles";
-import { isDraftComplete, useBookingDraft } from "./draft-context";
+import { useBookingDraft } from "./draft-context";
+import { placeLabel, serviceDetails } from "./service-details";
 
 function Row({ label, href, children }: { label: string; href: string; children: React.ReactNode }) {
   const tc = useTranslations("Common");
@@ -25,11 +28,23 @@ function Row({ label, href, children }: { label: string; href: string; children:
   );
 }
 
+/** Back to whichever form the draft came from. */
+export function ReviewBackLink() {
+  const t = useTranslations("Review");
+  const { draft } = useBookingDraft();
+  return draft.serviceType === "tour" ? (
+    <BackLink href="/tours" label={t("backToTours")} />
+  ) : (
+    <BackLink href="/book" label={t("backToForm")} />
+  );
+}
+
 /** `needsEmail`: phone-only customers must give an email for quotes (D11). */
 export function ReviewSummary({ needsEmail }: { needsEmail: boolean }) {
   const t = useTranslations("Review");
   const ts = useTranslations("ServiceType");
   const tv = useTranslations("Vehicle");
+  const td = useTranslations("Details");
   const sch = useTranslations("Schedule");
   const format = useFormatter();
   const locale = useLocale();
@@ -41,29 +56,38 @@ export function ReviewSummary({ needsEmail }: { needsEmail: boolean }) {
 
   if (!ready) return null;
 
-  if (!isDraftComplete(draft)) {
+  // The same parsing the server does, so the summary shows what will be stored.
+  const parsed = bookingRequestSchema.safeParse({ ...draft, region: regionForLocale(locale as AppLocale) });
+  let values: BookingValues | null = null;
+  if (parsed.success) {
+    try {
+      values = bookingValues(parsed.data);
+    } catch {
+      // An unknown package or stay: treat it as incomplete.
+    }
+  }
+  const editHref = draft.serviceType === "tour" ? "/tours" : "/book";
+
+  if (!values) {
     return (
       <div className="flex flex-col gap-4">
         <p role="alert">{t("incomplete")}</p>
-        <Link href="/book" className={primaryButton}>
-          {sch("title")}
+        <Link href={editHref} className={primaryButton}>
+          {t("backToForm")}
         </Link>
       </div>
     );
   }
 
-  const when = format.dateTime(zonedToUtc(draft.date!, draft.time!, draft.timeZone!), {
+  const when = format.dateTime(values.scheduledStart, {
     weekday: "long",
     day: "numeric",
     month: "long",
     hour: "numeric",
     minute: "2-digit",
-    timeZone: draft.timeZone!,
+    timeZone: values.timeZone,
   });
-  const flags = [
-    draft.needsMobilitySupport && t("mobility"),
-    draft.needsDocuments && t("documents"),
-  ].filter(Boolean);
+  const details = serviceDetails(values, td, tv);
 
   function submit() {
     setError(null);
@@ -82,24 +106,25 @@ export function ReviewSummary({ needsEmail }: { needsEmail: boolean }) {
     <div className="flex flex-col gap-5">
       <p className="text-base leading-snug text-muted-strong">{t("intro")}</p>
       <dl className={`${card} px-4`}>
-        <Row label={t("service")} href="/book">
-          {ts(draft.serviceType)} · {tv(draft.vehicle)} · {t("hours", { count: draft.estimatedHours })}
+        <Row label={t("service")} href={editHref}>
+          {[ts(values.serviceType), ...details].join(" · ")}
         </Row>
-        <Row label={t("where")} href="/book">
-          {draft.startAddress} → {draft.serviceAddress}
+        <Row label={t("where")} href={editHref}>
+          {placeLabel(values)}
         </Row>
-        <Row label={t("when")} href="/book">
+        <Row label={t("when")} href={editHref}>
           {when}
         </Row>
-        <Row label={t("forWhom")} href="/book">
-          {draft.recipient.kind === "self"
-            ? sch("forMe")
-            : `${draft.recipient.firstName} ${draft.recipient.lastName} · ${formatPhone(draft.recipient.phone)}`}
-        </Row>
-        {(draft.description || flags.length > 0) && (
-          <Row label={t("details")} href="/book">
-            {draft.description && <span className="block whitespace-pre-line">{draft.description}</span>}
-            {flags.length > 0 && <span className="block text-muted">{flags.join(" · ")}</span>}
+        {values.serviceType !== "tour" && (
+          <Row label={t("forWhom")} href={editHref}>
+            {draft.recipient.kind === "self"
+              ? sch("forMe")
+              : `${draft.recipient.firstName} ${draft.recipient.lastName} · ${formatPhone(draft.recipient.phone)}`}
+          </Row>
+        )}
+        {values.description && (
+          <Row label={t("details")} href={editHref}>
+            <span className="block whitespace-pre-line">{values.description}</span>
           </Row>
         )}
       </dl>

@@ -2,7 +2,16 @@
 
 import { createContext, use, useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import type { ServiceType, Vehicle } from "@/domain/booking";
+import {
+  MIN_DRIVER_DAYS,
+  bookingRequestSchema,
+  minHours,
+  vehiclesFor,
+  type ServiceType,
+  type TourKind,
+  type Vehicle,
+} from "@/domain/booking";
+import type { Region } from "@/lib/region";
 
 /**
  * The booking a customer is building. It lives in the browser until they sign
@@ -19,11 +28,25 @@ export type BookingDraft = {
   estimatedHours: number;
   vehicle: Vehicle;
   description: string;
-  needsMobilitySupport: boolean;
-  needsDocuments: boolean;
   recipient:
     | { kind: "self" }
     | { kind: "other"; firstName: string; lastName: string; phone: string };
+  // Hospital visit
+  accompanyingCount: number;
+  needsBystander: boolean;
+  // Driver
+  childSeat: boolean;
+  multiDay: boolean;
+  driverDays: number;
+  // Guided tours
+  tourKind: TourKind;
+  tourPackage: string;
+  stayLocation: string;
+  tourLocation: string;
+  partySize: number;
+  days: number;
+  includeFood: boolean;
+  needsStay: boolean;
 };
 
 export const EMPTY_DRAFT: BookingDraft = {
@@ -33,15 +56,26 @@ export const EMPTY_DRAFT: BookingDraft = {
   date: null,
   time: null,
   timeZone: null,
-  estimatedHours: 2,
+  estimatedHours: 3,
   vehicle: "small",
   description: "",
-  needsMobilitySupport: false,
-  needsDocuments: false,
   recipient: { kind: "self" },
+  accompanyingCount: 1,
+  needsBystander: false,
+  childSeat: false,
+  multiDay: false,
+  driverDays: MIN_DRIVER_DAYS,
+  tourKind: "package",
+  tourPackage: "",
+  stayLocation: "",
+  tourLocation: "",
+  partySize: 2,
+  days: 2,
+  includeFood: false,
+  needsStay: false,
 };
 
-const STORAGE_KEY = "booking-draft:v1";
+const STORAGE_KEY = "booking-draft:v2";
 
 type DraftContextValue = {
   draft: BookingDraft;
@@ -103,14 +137,20 @@ export function useBookingDraft(): DraftContextValue {
   return ctx;
 }
 
-/** True when the draft has everything needed to submit. */
-export function isDraftComplete(d: BookingDraft): boolean {
-  return Boolean(
-    d.startAddress.trim() &&
-      d.serviceAddress.trim() &&
-      d.date &&
-      d.time &&
-      d.timeZone &&
-      (d.recipient.kind === "self" || (d.recipient.firstName.trim() && d.recipient.phone.trim())),
-  );
+/**
+ * The draft with its service switched, keeping the hours and vehicle valid for
+ * the new service (drivers: 3+ hours and "my own car" instead of "no vehicle").
+ */
+export function withService(d: BookingDraft, serviceType: ServiceType): Partial<BookingDraft> {
+  const vehicles = vehiclesFor(serviceType);
+  return {
+    serviceType,
+    vehicle: vehicles.includes(d.vehicle) ? d.vehicle : serviceType === "driver" ? "own" : "none",
+    estimatedHours: Math.max(minHours(serviceType), d.estimatedHours),
+  };
+}
+
+/** True when the draft has everything needed to submit (the same schema the server uses). */
+export function isDraftComplete(d: BookingDraft, region: Region): boolean {
+  return bookingRequestSchema.safeParse({ ...d, region }).success;
 }

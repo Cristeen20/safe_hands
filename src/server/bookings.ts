@@ -6,7 +6,14 @@ import { getTranslations } from "next-intl/server";
 import { z } from "zod";
 import { db } from "@/db";
 import { booking, bookingEvent, payment, quote, recipient, user as userTable } from "@/db/schema";
-import { bookingRequestSchema, meetsMinLeadTime, paymentWindow } from "@/domain/booking";
+import {
+  UnknownTourError,
+  bookingRequestSchema,
+  bookingValues,
+  meetsMinLeadTime,
+  paymentWindow,
+  type BookingValues,
+} from "@/domain/booking";
 import { createCheckout, providerFor, type CheckoutStart } from "./payments";
 import { transitionBooking } from "./transitions";
 
@@ -15,7 +22,6 @@ import { routing } from "@/i18n/routing";
 import { requireUser } from "@/lib/authz";
 import { toE164 } from "@/lib/phone";
 import { regionForLocale } from "@/lib/region";
-import { zonedToUtc } from "@/lib/time";
 
 export type SubmitResult =
   | { ok: true; bookingId: string }
@@ -60,8 +66,14 @@ export async function submitBookingRequest(
     if (!otherPhone) return { ok: false, error: "invalidPhone" };
   }
 
-  const scheduledStart = zonedToUtc(req.date, req.time, req.timeZone);
-  if (!meetsMinLeadTime(scheduledStart, new Date())) return { ok: false, error: "leadTime" };
+  let values: BookingValues;
+  try {
+    values = bookingValues(req);
+  } catch (err) {
+    if (err instanceof UnknownTourError) return { ok: false, error: "invalid" };
+    throw err;
+  }
+  if (!meetsMinLeadTime(values.scheduledStart, new Date())) return { ok: false, error: "leadTime" };
 
   const bookingId = await db.transaction(async (tx) => {
     let recipientId: string;
@@ -98,16 +110,7 @@ export async function submitBookingRequest(
         customerId: user.id,
         recipientId,
         region,
-        serviceType: req.serviceType,
-        startAddress: req.startAddress,
-        serviceAddress: req.serviceAddress,
-        scheduledStart,
-        timeZone: req.timeZone,
-        estimatedHours: req.estimatedHours,
-        vehicle: req.vehicle,
-        description: req.description,
-        needsMobilitySupport: req.needsMobilitySupport,
-        needsDocuments: req.needsDocuments,
+        ...values,
         status: "submitted",
       })
       .returning({ id: booking.id });

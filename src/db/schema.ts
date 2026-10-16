@@ -9,7 +9,7 @@ import {
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
-import { BOOKING_STATUSES, SERVICE_TYPES, VEHICLES } from "@/domain/booking";
+import { BOOKING_STATUSES, SERVICE_TYPES, TOUR_KINDS, VEHICLES } from "@/domain/booking";
 import { REGIONS } from "@/lib/region";
 
 // Column names are snake_case in Postgres (see `casing` in db/index.ts and
@@ -27,6 +27,7 @@ export const roleEnum = pgEnum("role", ["customer", "admin", "helper"]);
 export const regionEnum = pgEnum("region", REGIONS);
 export const serviceTypeEnum = pgEnum("service_type", SERVICE_TYPES);
 export const vehicleEnum = pgEnum("vehicle", VEHICLES);
+export const tourKindEnum = pgEnum("tour_kind", TOUR_KINDS);
 export const bookingStatusEnum = pgEnum("booking_status", BOOKING_STATUSES);
 export const taskStatusEnum = pgEnum("task_status", ["pending", "current", "done"]);
 export const paymentProviderEnum = pgEnum("payment_provider", ["stripe", "razorpay", "dev"]);
@@ -131,15 +132,30 @@ export const booking = pgTable(
       .references(() => recipient.id),
     region: regionEnum().notNull(),
     serviceType: serviceTypeEnum().notNull(),
-    startAddress: text().notNull(),
+    /** Pickup, for services with a route (hospital visit, driver, companion); otherwise "". */
+    startAddress: text().notNull().default(""),
+    /** Destination, the one location, or the tour's package / stay / place. */
     serviceAddress: text().notNull(),
     scheduledStart: timestamp({ withTimezone: true }).notNull(),
     timeZone: text().notNull(),
-    estimatedHours: smallint().notNull(),
-    vehicle: vehicleEnum().notNull(),
+    // Which of the columns below are set depends on the service: see
+    // `bookingValues` in src/domain/booking.ts.
+    estimatedHours: smallint(),
+    vehicle: vehicleEnum(),
     description: text().notNull().default(""),
-    needsMobilitySupport: boolean().notNull().default(false),
-    needsDocuments: boolean().notNull().default(false),
+    /** Hospital visit: family travelling with the patient. */
+    accompanyingCount: smallint(),
+    needsBystander: boolean().notNull().default(false),
+    childSeat: boolean().notNull().default(false),
+    /** Multi-day driver bookings and tours. */
+    days: smallint(),
+    /** Tours: people travelling, including the customer. */
+    partySize: smallint(),
+    includeFood: boolean().notNull().default(false),
+    needsStay: boolean().notNull().default(false),
+    tourKind: tourKindEnum(),
+    /** Package id from src/config/tours.ts. */
+    tourPackage: text(),
     status: bookingStatusEnum().notNull().default("submitted"),
     submittedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     /** D23: shown to the customer when an admin rejects the request. */
@@ -151,6 +167,7 @@ export const booking = pgTable(
     index().on(t.customerId),
     index().on(t.status, t.scheduledStart),
     index().on(t.helperId),
+    index().on(t.tourPackage),
   ],
 );
 
