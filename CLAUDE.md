@@ -10,7 +10,7 @@ The design comes from the "Book a Help" canvas: https://claude.ai/artifact/SNXWp
 
 **Milestone 1 (foundation + booking request) is built.** A guest builds a request, signs in with a phone code, submits it, and sees it as "Awaiting approval". Admins see it in `/admin/requests`. Customers get a 403 on admin pages.
 
-**Milestone 2 (quote → pay → confirmed) is built, except the real payment providers.** Admins quote or reject (with a reason). Customers accept and pay, or decline. An hourly job expires unanswered quotes, and customers get email at each step. Payments currently run through the **dev provider**; the Stripe and Razorpay adapters (`src/server/payments/index.ts`) and their webhooks are next, once the accounts exist.
+**Milestone 2 (quote → pay → confirmed) is built, except the real payment providers.** Admins quote or reject (with a reason). Customers accept and pay, or decline. A scheduled job (daily on the Hobby plan, see `vercel.ts`) expires unanswered quotes, and customers get email at each step. Payments currently run through the **dev provider**; the Stripe and Razorpay adapters (`src/server/payments/index.ts`) and their webhooks are next, once the accounts exist.
 
 **Still to build:**
 - Stripe Checkout + webhook; Razorpay Standard Checkout + webhook.
@@ -200,7 +200,7 @@ The canvas is a phone-app mockup. The product is a **responsive website** (D18).
 | `pnpm test:e2e` | Playwright end-to-end tests at desktop and phone sizes. Starts a dev server on :3100 and seeds an admin. If `pnpm dev` is already running, use `E2E_BASE_URL=http://localhost:3000 pnpm test:e2e`. |
 | `pnpm lint` / `pnpm typecheck` | ESLint / `tsc` |
 | `pnpm db:generate` / `pnpm db:migrate` | Create / apply Drizzle migrations in `drizzle/` |
-| `curl -H "Authorization: Bearer $CRON_SECRET" localhost:3000/api/cron/expire-quotes` | Run the hourly quote-expiry job by hand (`vercel.ts` schedules it on Vercel) |
+| `curl -H "Authorization: Bearer $CRON_SECRET" localhost:3000/api/cron/expire-quotes` | Run the quote-expiry job by hand (`vercel.ts` schedules it on Vercel) |
 | `localhost:3000/api/dev/admin-login[?email=…]` | **Local only:** signs you in as an admin without a code. Works only under `next dev` with `DEV_ADMIN_LOGIN=1`; returns 404 everywhere else. |
 | `pnpm seed:admin "<email or +phone>" "Name"` | Create or promote the first admin (D15). Indian admins use email (D20). |
 
