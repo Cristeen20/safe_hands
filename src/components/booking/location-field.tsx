@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Map, useMap, useMapsLibrary } from "@vis.gl/react-google-maps";
 import { useLocale, useTranslations } from "next-intl";
 import type { GeoPoint } from "@/domain/booking";
-import { regionForLocale, type AppLocale } from "@/lib/region";
+import { REGIONS, isRegion, regionForLocale, type AppLocale, type Region } from "@/lib/region";
 import { secondaryButton, primaryButton } from "@/components/ui/styles";
 import { MAPS_ENABLED, mapFallbackCenter } from "./maps-provider";
 
@@ -16,12 +16,29 @@ type Props = {
   value: LocationValue;
   onChange: (value: LocationValue) => void;
   autoComplete?: string;
+  /** Called when the confirmed place is in another of our markets, so the page can switch site. */
+  onOtherCountry?: (region: Region) => void;
 };
 
 const fieldBox = "flex flex-col gap-0.5 rounded-field border border-border bg-card px-3.5 py-3 focus-within:border-primary";
 const fieldInput = "w-full bg-transparent p-0 text-base font-medium text-ink outline-none placeholder:text-muted";
 /** GPS fixes less accurate than this ask the customer to check the pin (spec edge case). */
 const GPS_ACCURACY_M = 50;
+
+/** Suggestions come from all our markets, ranked towards the site's own country. */
+const MARKET_CODES = REGIONS.map((r) => r.toLowerCase());
+const MARKET_BOUNDS: Record<Region, google.maps.LatLngBoundsLiteral> = {
+  US: { south: 24.4, west: -125, north: 49.4, east: -66.9 },
+  CA: { south: 41.7, west: -141, north: 70, east: -52.6 },
+  GB: { south: 49.8, west: -8.7, north: 60.9, east: 1.8 },
+  IN: { south: 6.5, west: 68, north: 35.7, east: 97.4 },
+};
+
+/** The market a place is in, from its address components; null outside our markets. */
+function marketOf(countryCode: string | null | undefined): Region | null {
+  const code = countryCode?.toUpperCase();
+  return isRegion(code) ? code : null;
+}
 
 /**
  * An address field. With maps configured: search with autocomplete, or open
@@ -33,47 +50,27 @@ export function LocationField(props: Props) {
   return MAPS_ENABLED ? <MapLocationField {...props} /> : <PlainLocationField {...props} />;
 }
 
-function NotesInput({ value, onChange }: Pick<Props, "value" | "onChange">) {
-  const t = useTranslations("Location");
+function PlainLocationField({ label, placeholder, value, onChange, autoComplete }: Props) {
   return (
-    <label className="flex flex-col gap-1 text-sm font-semibold text-muted">
-      {t("notesLabel")}
+    <label className={fieldBox}>
+      <span className="text-xs font-semibold text-muted">{label}</span>
       <input
         type="text"
+        required
         maxLength={200}
-        placeholder={t("notesPlaceholder")}
-        value={value.notes}
-        onChange={(e) => onChange({ ...value, notes: e.target.value })}
-        className="h-11 rounded-field border border-border bg-card px-3.5 text-[15px] font-medium text-ink outline-none placeholder:font-normal placeholder:text-muted focus:border-primary"
+        autoComplete={autoComplete}
+        placeholder={placeholder}
+        value={value.address}
+        onChange={(e) => onChange({ ...value, address: e.target.value, point: null })}
+        className={fieldInput}
       />
     </label>
   );
 }
 
-function PlainLocationField({ label, placeholder, value, onChange, autoComplete }: Props) {
-  return (
-    <div className="flex flex-col gap-2">
-      <label className={fieldBox}>
-        <span className="text-xs font-semibold text-muted">{label}</span>
-        <input
-          type="text"
-          required
-          maxLength={200}
-          autoComplete={autoComplete}
-          placeholder={placeholder}
-          value={value.address}
-          onChange={(e) => onChange({ ...value, address: e.target.value, point: null })}
-          className={fieldInput}
-        />
-      </label>
-      <NotesInput value={value} onChange={onChange} />
-    </div>
-  );
-}
-
 type Suggestion = { id: string; text: string; prediction: google.maps.places.PlacePrediction };
 
-function MapLocationField({ label, placeholder, value, onChange, autoComplete }: Props) {
+function MapLocationField({ label, placeholder, value, onChange, autoComplete, onOtherCountry }: Props) {
   const t = useTranslations("Location");
   const locale = useLocale() as AppLocale;
   const region = regionForLocale(locale);
@@ -89,7 +86,7 @@ function MapLocationField({ label, placeholder, value, onChange, autoComplete }:
   const suggestions = found.input === input ? found.items : [];
   const dismiss = () => setFound({ input, items: [] });
 
-  // Debounced autocomplete (about 300 ms), limited to the market's country.
+  // Debounced autocomplete (about 300 ms), from our markets, the site's own country first.
   useEffect(() => {
     if (!places || input.length < 3) return;
     let current = true;
@@ -98,7 +95,8 @@ function MapLocationField({ label, placeholder, value, onChange, autoComplete }:
       try {
         const { suggestions: found } = await places.AutocompleteSuggestion.fetchAutocompleteSuggestions({
           input,
-          includedRegionCodes: [region.toLowerCase()],
+          includedRegionCodes: MARKET_CODES,
+          locationBias: MARKET_BOUNDS[region],
           language: locale,
           sessionToken: sessionToken.current,
         });
@@ -126,7 +124,7 @@ function MapLocationField({ label, placeholder, value, onChange, autoComplete }:
     dismiss();
     const place = s.prediction.toPlace();
     try {
-      await place.fetchFields({ fields: ["location", "formattedAddress", "id"] });
+      await place.fetchFields({ fields: ["location", "formattedAddress", "id", "addressComponents"] });
     } catch (err) {
       console.error("[maps] place details failed", err);
       return;
@@ -138,6 +136,8 @@ function MapLocationField({ label, placeholder, value, onChange, autoComplete }:
       address: place.formattedAddress ?? s.text,
       point: { lat: place.location.lat(), lng: place.location.lng(), placeId: place.id, source: "search" },
     });
+    const market = marketOf(place.addressComponents?.find((c) => c.types.includes("country"))?.shortText);
+    if (market && market !== region) onOtherCountry?.(market);
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -227,14 +227,13 @@ function MapLocationField({ label, placeholder, value, onChange, autoComplete }:
           label={label}
           initial={value.point}
           onCancel={() => setMapOpen(false)}
-          onConfirm={(address, point) => {
+          onConfirm={(address, point, market) => {
             onChange({ ...value, address, point });
             setMapOpen(false);
+            if (market && market !== region) onOtherCountry?.(market);
           }}
         />
       )}
-
-      <NotesInput value={value} onChange={onChange} />
     </div>
   );
 }
@@ -250,7 +249,7 @@ function PinPicker({
   mapId: string;
   label: string;
   initial: GeoPoint | null;
-  onConfirm: (address: string, point: GeoPoint) => void;
+  onConfirm: (address: string, point: GeoPoint, market: Region | null) => void;
   onCancel: () => void;
 }) {
   const t = useTranslations("Location");
@@ -258,7 +257,7 @@ function PinPicker({
   const map = useMap(mapId);
   const geocoding = useMapsLibrary("geocoding");
   const [center, setCenter] = useState<google.maps.LatLngLiteral | null>(initial);
-  const [pinAddress, setPinAddress] = useState<{ text: string; placeId: string } | null>(null);
+  const [pinAddress, setPinAddress] = useState<{ text: string; placeId: string; market: Region | null } | null>(null);
   const [gps, setGps] = useState<"idle" | "locating" | "approximate" | "denied">("idle");
   const source = useRef<GeoPoint["source"]>(initial?.source ?? "pin");
   const fallback = mapFallbackCenter(region);
@@ -293,7 +292,10 @@ function PinPicker({
     let current = true;
     new geocoding.Geocoder().geocode({ location: center }).then(
       ({ results }) => {
-        if (current && results[0]) setPinAddress({ text: results[0].formatted_address, placeId: results[0].place_id });
+        const top = results[0];
+        if (!current || !top) return;
+        const country = top.address_components.find((c) => c.types.includes("country"))?.short_name;
+        setPinAddress({ text: top.formatted_address, placeId: top.place_id, market: marketOf(country) });
       },
       () => current && setPinAddress(null),
     );
@@ -356,7 +358,7 @@ function PinPicker({
               lng: center.lng,
               placeId: pinAddress?.placeId ?? "",
               source: source.current,
-            })
+            }, pinAddress?.market ?? null)
           }
           className={`${primaryButton} sm:w-fit sm:px-8`}
         >

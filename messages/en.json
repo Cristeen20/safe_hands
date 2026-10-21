@@ -453,9 +453,7 @@
     "locating": "Finding you…",
     "cancel": "Cancel",
     "approximate": "Your location is approximate. Move the map so the pin is on the exact spot.",
-    "locationDenied": "We couldn't get your location. Search for the address or move the map.",
-    "notesLabel": "Entrance, floor or landmark (optional)",
-    "notesPlaceholder": "Gate 2, 3rd floor"
+    "locationDenied": "We couldn't get your location. Search for the address or move the map."
   },
   "Price": {
     "loading": "Working out the price…",

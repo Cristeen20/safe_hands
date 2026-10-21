@@ -15,8 +15,8 @@ import {
   vehiclesFor,
 } from "@/domain/booking";
 import type { Vehicle } from "@/domain/booking";
-import { Link, useRouter } from "@/i18n/navigation";
-import { regionForLocale, type AppLocale } from "@/lib/region";
+import { Link, usePathname, useRouter } from "@/i18n/navigation";
+import { REGION_CONFIG, regionForLocale, type AppLocale, type Region } from "@/lib/region";
 import { zonedToUtc } from "@/lib/time";
 import { CarIcon, InfoIcon, KeyIcon, VanIcon, WalkIcon } from "@/components/ui/icons";
 import { Stepper } from "@/components/ui/stepper";
@@ -121,6 +121,7 @@ function BookingFormFields() {
   const tf = useTranslations("ForWhom");
   const format = useFormatter();
   const router = useRouter();
+  const pathname = usePathname();
   const region = regionForLocale(useLocale() as AppLocale);
   const { draft, update } = useBookingDraft();
   const [showIncomplete, setShowIncomplete] = useState(false);
@@ -148,6 +149,13 @@ function BookingFormFields() {
     d.recipient.kind === "self"
       ? t("forMe")
       : `${d.recipient.firstName} ${d.recipient.lastName}`.trim() || tf("someoneElse");
+
+  // A place in another of our markets moves the booking to that country's site.
+  // The day and time were in the old site's time zone, so they're picked again.
+  function switchCountry(market: Region) {
+    update({ date: null, time: null, timeZone: null });
+    router.replace(pathname, { locale: REGION_CONFIG[market].locale });
+  }
 
   function next() {
     if (draft.serviceType === "tour") update(withService(draft, service));
@@ -192,6 +200,7 @@ function BookingFormFields() {
               </div>
               <div className="flex flex-1 flex-col gap-4">
                 <LocationField
+                  onOtherCountry={switchCountry}
                   label={t("from")}
                   placeholder={t("addressPlaceholder")}
                   autoComplete="street-address"
@@ -199,6 +208,7 @@ function BookingFormFields() {
                   onChange={(v) => update({ startAddress: v.address, startPoint: v.point, startNotes: v.notes })}
                 />
                 <LocationField
+                  onOtherCountry={switchCountry}
                   label={t("to")}
                   placeholder={t(`destPlaceholder.${service}`)}
                   value={{ address: d.serviceAddress, point: d.servicePoint, notes: d.serviceNotes }}
@@ -208,6 +218,7 @@ function BookingFormFields() {
             </div>
           ) : (
             <LocationField
+              onOtherCountry={switchCountry}
               label={t(`placeLabel.${service}`)}
               placeholder={t(`placePlaceholder.${service}`)}
               autoComplete="street-address"
