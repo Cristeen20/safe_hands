@@ -1,24 +1,11 @@
 {
   "Schedule": {
-    "addressPlaceholder": "Street and postal code",
-    "regionNote": "We can't take bookings in Quebec."
+    "addressPlaceholder": "Street and postal code"
   },
   "SignIn": {
     "phonePlaceholder": "(416) 555-0142"
   },
   "When": {
     "leadNotice": "Requests need at least 48 hours of notice so our team can approve them."
-  },
-  "Home": {
-    "heroNote": "Available across Canada, except Quebec."
-  },
-  "Footer": {
-    "ca": "Canada (excl. Quebec)"
-  },
-  "Review": {
-    "outsideArea": "One of the places is outside the area we serve. We can't take bookings in Quebec."
-  },
-  "Price": {
-    "outsideArea": "One of the places is outside the area we serve. We can't take bookings in Quebec."
   }
 }

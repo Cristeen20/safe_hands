@@ -3,10 +3,10 @@ import { signInOnPage, signInWithEmailOnPage } from "./helpers";
 
 const digits = (n: number) => String(Math.floor(Math.random() * 10 ** n)).padStart(n, "0");
 
-test("en-CA: local copy, Quebec notice, and local-format phone sign-in", async ({ page }) => {
+test("en-CA: local copy, no Quebec notice, and local-format phone sign-in", async ({ page }) => {
   await page.goto("/en-CA/book");
-  await expect(page.getByLabel("From", { exact: true })).toHaveAttribute("placeholder", "Street and postal code");
-  await expect(page.getByText("We can't take bookings in Quebec.")).toBeVisible();
+  await expect(page.getByPlaceholder("Street and postal code").first()).toBeVisible();
+  await expect(page.getByText(/Quebec/)).toHaveCount(0);
 
   const typed = `416 555 ${digits(4)}`;
   await page.goto("/en-CA/sign-in?next=/activity");
