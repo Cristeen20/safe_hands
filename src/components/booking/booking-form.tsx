@@ -10,7 +10,6 @@ import {
   MIN_DRIVER_DAYS,
   hasHours,
   hasVehicle,
-  isOurVehicle,
   isRouteService,
   minHours,
   vehiclesFor,
@@ -26,7 +25,7 @@ import { isDraftComplete, useBookingDraft, withService, type BookingDraft } from
 import { ForWhomSection } from "./for-whom-section";
 import { LocationField } from "./location-field";
 import { MapsProvider } from "./maps-provider";
-import { PriceSummary, RoutePreview, isBlocked, payableAmount, useMoney, usePriceEstimate } from "./price-estimate";
+import { PriceSummary, RoutePreview, payableAmount, useMoney, usePriceEstimate } from "./price-estimate";
 import { WhenSection } from "./when-section";
 
 const VEHICLE_ICON: Record<Vehicle, typeof CarIcon> = {
@@ -132,14 +131,7 @@ function BookingFormFields() {
   const route = isRouteService(service);
   const estimate = usePriceEstimate(d);
   const payable = payableAmount(estimate);
-  const blocked = isBlocked(estimate);
   const money = useMoney();
-  // Spec: no vehicle can be sent this far from our base; walking/own car still can.
-  const vehicleBarred =
-    service === "hospital_visit" &&
-    estimate.status === "done" &&
-    estimate.result.ok &&
-    estimate.result.estimate?.vehicleAllowed === false;
 
   const whenLabel =
     d.date && d.time && d.timeZone
@@ -159,7 +151,7 @@ function BookingFormFields() {
 
   function next() {
     if (draft.serviceType === "tour") update(withService(draft, service));
-    if (!isDraftComplete(d, region) || blocked) {
+    if (!isDraftComplete(d, region)) {
       setShowIncomplete(true);
       return;
     }
@@ -263,7 +255,6 @@ function BookingFormFields() {
                       key={v}
                       type="button"
                       aria-pressed={on}
-                      disabled={vehicleBarred && isOurVehicle(v) && !on}
                       onClick={() => update({ vehicle: v })}
                       className={`flex min-h-31 flex-col items-start gap-1.5 rounded-2xl text-left disabled:opacity-50 ${
                         on
@@ -280,7 +271,6 @@ function BookingFormFields() {
                   );
                 })}
               </div>
-              {vehicleBarred && <p className="mt-2.5 text-sm font-semibold text-muted-strong">{t("vehicleBarred")}</p>}
             </fieldset>
           )}
 
@@ -383,7 +373,7 @@ function BookingFormFields() {
             {t("incomplete")}
           </p>
         )}
-        <button type="button" onClick={next} disabled={blocked} className={primaryButton}>
+        <button type="button" onClick={next} className={primaryButton}>
           {t(`cta.${service}`)}
         </button>
         <p className="text-[13px] leading-snug text-muted">

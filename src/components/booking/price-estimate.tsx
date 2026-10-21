@@ -67,10 +67,6 @@ export function payableAmount(state: EstimateState): { minor: number; currency: 
   return est?.outcome === "auto" && est.amountMinor !== null ? { minor: est.amountMinor, currency: est.currency } : null;
 }
 
-export function isBlocked(state: EstimateState): boolean {
-  return state.status === "done" && state.result.ok && state.result.estimate?.outcome === "blocked";
-}
-
 /** Distance, drive time and price (or why it needs an admin) for a draft or a stored booking. */
 export function PriceSummary({ state }: { state: EstimateState }) {
   const t = useTranslations("Price");
@@ -116,7 +112,7 @@ export function EstimateDetails({ estimate: e, forAdmin = false }: { estimate: P
           <div key={l.kind} className="contents">
             <dt className="text-muted">
               {t(`lines.${l.kind}`, {
-                quantity: l.kind === "distance" || l.kind === "location" ? distance(l.quantity) : hours(l.quantity),
+                quantity: l.kind === "distance" ? distance(l.quantity) : hours(l.quantity),
                 rate: money(l.rateMinor, e.currency),
               })}
             </dt>
@@ -124,32 +120,22 @@ export function EstimateDetails({ estimate: e, forAdmin = false }: { estimate: P
           </div>
         ))}
       </dl>
-      {e.outcome === "blocked" ? (
-        <p role="alert" className="font-semibold text-red-700">
-          {t("vehicleTooFar", { max: distance(e.maxBaseDistance) })}
+      {e.amountMinor !== null && (
+        <p className="flex items-baseline justify-between border-t border-border pt-2">
+          <span className="font-bold">{e.outcome === "auto" ? t("total") : t("suggested")}</span>
+          <span className="font-display text-2xl font-bold">{money(e.amountMinor, e.currency)}</span>
         </p>
-      ) : (
-        <>
-          {e.amountMinor !== null && (
-            <p className="flex items-baseline justify-between border-t border-border pt-2">
-              <span className="font-bold">{e.outcome === "auto" ? t("total") : t("suggested")}</span>
-              <span className="font-display text-2xl font-bold">{money(e.amountMinor, e.currency)}</span>
-            </p>
-          )}
-          {e.outcome === "pendingAdmin" &&
-            (forAdmin ? (
-              <ul className="list-disc pl-5 text-sm font-semibold text-muted-strong">
-                {e.reasons.map((r) => (
-                  <li key={r}>{t(`reasons.${r}`, { max: distance(e.maxBaseDistance) })}</li>
-                ))}
-              </ul>
-            ) : (
-              <p className="rounded-field bg-accent-soft px-3 py-2 text-sm font-semibold">
-                {e.reasons.includes("farFromBase") ? t("needsApprovalFar", { max: distance(e.maxBaseDistance) }) : t("pending")}
-              </p>
-            ))}
-        </>
       )}
+      {e.outcome === "pendingAdmin" &&
+        (forAdmin ? (
+          <ul className="list-disc pl-5 text-sm font-semibold text-muted-strong">
+            {e.reasons.map((r) => (
+              <li key={r}>{t(`reasons.${r}`)}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="rounded-field bg-accent-soft px-3 py-2 text-sm font-semibold">{t("pending")}</p>
+        ))}
     </div>
   );
 }

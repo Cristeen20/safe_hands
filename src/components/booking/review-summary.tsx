@@ -10,7 +10,7 @@ import { submitBookingRequest } from "@/server/bookings";
 import { BackLink } from "@/components/ui/back-link";
 import { card, primaryButton, textInput } from "@/components/ui/styles";
 import { useBookingDraft } from "./draft-context";
-import { PriceSummary, isBlocked, payableAmount, useMoney, usePriceEstimate } from "./price-estimate";
+import { PriceSummary, payableAmount, useMoney, usePriceEstimate } from "./price-estimate";
 import { placeLabel, serviceDetails } from "./service-details";
 import { usePayBooking } from "./use-pay-booking";
 
@@ -177,7 +177,7 @@ export function ReviewSummary({ needsEmail }: { needsEmail: boolean }) {
       <button
         type="button"
         onClick={submit}
-        disabled={pending || isBlocked(estimate) || estimate.status === "loading"}
+        disabled={pending || estimate.status === "loading"}
         className={`${primaryButton} sm:w-fit sm:px-10`}
       >
         {pending

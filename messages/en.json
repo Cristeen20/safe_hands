@@ -152,8 +152,7 @@
     "payNote": "You'll pay {amount} when you book. The price is set by distance and time.",
     "multiDaySubCompanion": "Same companion every day",
     "driverIntro": "Drop your loved one with care: we drive anywhere, in your car or ours. Drivers are booked for at least 4 hours, or the whole journey if it's longer.",
-    "hospitalTime": "We take them to the hospital and bring them back. The visit itself is planned at about {count, plural, one {# hour} other {# hours}}.",
-    "vehicleBarred": "This pickup is too far from our base to send a vehicle. Choose \"No vehicle\" and our team will review it."
+    "hospitalTime": "We take them to the hospital and bring them back. The visit itself is planned at about {count, plural, one {# hour} other {# hours}}."
   },
   "When": {
     "title": "When do you need the service?",
@@ -231,7 +230,6 @@
     "submitAndPay": "Book and pay {amount}",
     "price": "Price",
     "notes": "Directions",
-    "blocked": "We can't send a vehicle that far from our base. Go back and choose \"No vehicle\".",
     "outsideArea": "One of the places is outside the area we serve.",
     "tooClose": "The pickup and destination are the same place. Check the addresses."
   },
@@ -465,18 +463,15 @@
     "driveTime": "Drive time",
     "lines": {
       "distance": "Vehicle · {quantity} at {rate}",
-      "location": "Pickup distance · {quantity} at {rate}",
       "driveTime": "Driving · {quantity} at {rate}",
       "serviceTime": "Hospital visit · {quantity} at {rate}"
     },
     "total": "Total",
     "suggested": "Estimate",
     "pending": "Our team will review this and email you a quote.",
-    "needsApprovalFar": "This pickup is more than {max} from our base, so it needs approval. We'll email you a quote.",
     "vehicleTooFar": "We can't send a vehicle more than {max} from our base. Choose \"No vehicle\" instead.",
     "routeMap": "Map of the route",
     "reasons": {
-      "farFromBase": "Pickup is {max} or more from the base",
       "noBase": "No base location is set for this market",
       "noRates": "No rates are set for this market",
       "estimatedRoute": "Routing failed: distances are straight-line estimates",

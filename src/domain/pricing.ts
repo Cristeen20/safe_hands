@@ -12,8 +12,7 @@ export type Leg = { meters: number; seconds: number; estimated: boolean };
 
 /**
  * Why a request needs an admin instead of an automatic quote:
- * - farFromBase: the pickup is beyond the base radius (no vehicle).
- * - noBase / noRates: the market isn't configured yet.
+ * - noRates: the market has no rates yet.
  * - estimatedRoute: routing failed and the straight-line fallback was used.
  * - multiDay: multi-day bookings have no rule yet.
  * - companion: companion pricing isn't defined.
@@ -22,8 +21,6 @@ export type Leg = { meters: number; seconds: number; estimated: boolean };
  * - areaUnchecked: we couldn't confirm the points are inside the market.
  */
 export type PendingReason =
-  | "farFromBase"
-  | "noBase"
   | "noRates"
   | "estimatedRoute"
   | "multiDay"
@@ -33,7 +30,7 @@ export type PendingReason =
   | "areaUnchecked";
 
 export type PriceLine = {
-  kind: "distance" | "location" | "driveTime" | "serviceTime";
+  kind: "distance" | "driveTime" | "serviceTime";
   /** Distance in the region's unit, or hours. */
   quantity: number;
   rateMinor: number;
@@ -41,18 +38,13 @@ export type PriceLine = {
 };
 
 export type PriceEstimate = {
-  /** auto: quoted and payable now. pendingAdmin: an admin quotes it. blocked: can't be booked. */
-  outcome: "auto" | "pendingAdmin" | "blocked";
+  /** auto: quoted and payable now. pendingAdmin: an admin quotes it. */
+  outcome: "auto" | "pendingAdmin";
   reasons: PendingReason[];
   currency: Currency;
   distanceUnit: DistanceUnit;
   /** Distance driven for the service (round trip for hospital visits), in the region's unit. */
   tripDistance: number;
-  /** Base → pickup, in the region's unit; null without a base. */
-  baseDistance: number | null;
-  maxBaseDistance: number;
-  /** False when a vehicle can't be sent this far from the base. */
-  vehicleAllowed: boolean;
   /** Driving time (both ways for hospital visits), before rounding. */
   driveHours: number;
   /** Hours billed for driving or the driver, rounded up. Null when not hourly. */
@@ -70,8 +62,6 @@ export type PricingInput = {
   /** The hours the customer asked for: hospital service time, or driver hours (at least the minimum). */
   requestedHours: number;
   multiDay: boolean;
-  /** Base → pickup; null when the market has no base. */
-  baseToFrom: Leg | null;
   /** Pickup → destination, one way. */
   fromToTo: Leg;
 };
@@ -114,11 +104,9 @@ const line = (kind: PriceLine["kind"], quantity: number, rateMinor: number): Pri
 /**
  * Price a hospital visit, driver or companion booking.
  *
- * Hospital visit (route base → from → to → from):
- *   with vehicle:    perDistance × round trip + locationPerDistance × base→from;
- *                    can't be booked if base→from ≥ maxBaseDistance.
- *   without vehicle: driveHour × round-trip drive time + serviceHour × 2 h;
- *                    base→from ≥ maxBaseDistance needs an admin.
+ * Hospital visit (from → to → from), plus serviceHour × the hours asked for:
+ *   with our vehicle:      perDistance × round trip.
+ *   in the customer's car: driveHour × round-trip drive time.
  * Driver: driveHour × max(requested hours ≥ 4, one-way drive time). No return trip.
  * Companion: no rule yet, always an admin.
  */
@@ -128,13 +116,11 @@ export function priceRoute(
   currency: Currency,
   distanceUnit: DistanceUnit,
 ): PriceEstimate {
-  const { rates, maxBaseDistance } = pricing;
+  const { rates } = pricing;
   const reasons = new Set<PendingReason>();
-  const { fromToTo, baseToFrom } = input;
+  const { fromToTo } = input;
 
-  const baseDistance = baseToFrom ? toUnit(baseToFrom.meters, distanceUnit) : null;
-  const farFromBase = baseDistance !== null && baseDistance >= maxBaseDistance;
-  if (fromToTo.estimated || baseToFrom?.estimated) reasons.add("estimatedRoute");
+  if (fromToTo.estimated) reasons.add("estimatedRoute");
   if (!rates) reasons.add("noRates");
 
   const est: PriceEstimate = {
@@ -143,9 +129,6 @@ export function priceRoute(
     currency,
     distanceUnit,
     tripDistance: toUnit(fromToTo.meters, distanceUnit),
-    baseDistance,
-    maxBaseDistance,
-    vehicleAllowed: !farFromBase,
     driveHours: fromToTo.seconds / 3600,
     billedHours: null,
     serviceHours: null,
@@ -158,18 +141,10 @@ export function priceRoute(
   } else if (input.serviceType === "hospital_visit") {
     est.tripDistance = toUnit(fromToTo.meters * 2, distanceUnit);
     est.driveHours = (fromToTo.seconds * 2) / 3600;
-    if (!baseToFrom) reasons.add("noBase");
     est.serviceHours = input.requestedHours;
     if (input.withVehicle) {
-      if (farFromBase) est.outcome = "blocked";
-      if (rates) {
-        est.lines.push(line("distance", est.tripDistance, rates.perDistance));
-        if (rates.locationPerDistance > 0 && baseDistance !== null) {
-          est.lines.push(line("location", baseDistance, rates.locationPerDistance));
-        }
-      }
+      if (rates) est.lines.push(line("distance", est.tripDistance, rates.perDistance));
     } else {
-      if (farFromBase) reasons.add("farFromBase");
       est.billedHours = roundUpHours(est.driveHours);
       if (rates) est.lines.push(line("driveTime", est.billedHours, rates.driveHour));
     }
@@ -189,6 +164,6 @@ export function priceRoute(
   }
 
   est.reasons = [...reasons];
-  if (est.outcome !== "blocked" && est.reasons.length > 0) est.outcome = "pendingAdmin";
+  if (est.reasons.length > 0) est.outcome = "pendingAdmin";
   return est;
 }

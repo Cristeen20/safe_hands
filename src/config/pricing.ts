@@ -10,34 +10,23 @@ export type LatLng = { lat: number; lng: number };
 export type Rates = {
   /** With our vehicle: per km/mile over the from ⇄ to round trip. */
   perDistance: number;
-  /** With our vehicle: per km/mile from our base to the pickup. */
-  locationPerDistance: number;
-  /** Per hour of driving (hospital visit without a vehicle, driver). */
+  /** Per hour of driving (hospital visit in the customer's own car, driver). */
   driveHour: number;
   /** Per hour of the service itself (hospital visit, with or without a vehicle). */
   serviceHour: number;
 };
 
 export type RegionPricing = {
-  /** Our operating location. Null until it's set: every route request then goes to an admin. */
-  base: LatLng | null;
-  /** Pickups this far from the base or further need an admin (no vehicle) or can't be booked (with vehicle). */
-  maxBaseDistance: number;
   /** Null until the market has rates: its requests go to an admin for a quote. */
   rates: Rates | null;
 };
 
 export const PRICING: Record<Region, RegionPricing> = {
-  IN: {
-    // TODO: set the base before launch. Until then India requests also wait for an admin.
-    base: null,
-    maxBaseDistance: 10, // km
-    rates: { perDistance: 25_00, locationPerDistance: 0, driveHour: 100_00, serviceHour: 500_00 },
-  },
-  // Placeholders: no rates yet, so these markets keep admin quotes (D4).
-  US: { base: null, maxBaseDistance: 6, rates: null }, // miles
-  CA: { base: null, maxBaseDistance: 10, rates: null }, // km
-  GB: { base: null, maxBaseDistance: 6, rates: null }, // miles
+  IN: { rates: { perDistance: 25_00, driveHour: 100_00, serviceHour: 500_00 } },
+  // No rates yet, so these markets keep admin quotes (D4).
+  US: { rates: null },
+  CA: { rates: null },
+  GB: { rates: null },
 };
 
 /** Rules shared by every market. */

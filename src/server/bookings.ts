@@ -32,7 +32,7 @@ export type SubmitResult =
   | { ok: true; bookingId: string; payNow: boolean }
   | {
       ok: false;
-      error: "invalid" | "invalidPhone" | "leadTime" | "invalidEmail" | "emailTaken" | "blocked" | "outsideArea" | "tooClose";
+      error: "invalid" | "invalidPhone" | "leadTime" | "invalidEmail" | "emailTaken" | "outsideArea" | "tooClose";
     };
 
 /**
@@ -42,7 +42,7 @@ export type SubmitResult =
  *
  * Route services are priced here from the map points (src/server/pricing.ts).
  * An "auto" price becomes a system quote at once, so the customer can pay
- * now; anything else waits for an admin, and a "blocked" one isn't saved.
+ * now; anything else waits for an admin.
  */
 export async function submitBookingRequest(
   locale: string,
@@ -95,7 +95,6 @@ export async function submitBookingRequest(
   const priced = await estimateBooking(region, values);
   if (!priced.ok) return { ok: false, error: priced.error };
   const estimate = priced.estimate;
-  if (estimate?.outcome === "blocked") return { ok: false, error: "blocked" };
   const autoQuote = estimate?.outcome === "auto" && estimate.amountMinor !== null ? estimate : null;
 
   const bookingId = await db.transaction(async (tx) => {

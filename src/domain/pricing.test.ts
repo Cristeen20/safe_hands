@@ -3,9 +3,7 @@ import type { RegionPricing } from "@/config/pricing";
 import { haversineMeters, isTooClose, priceRoute, roundUpHours, type Leg, type PricingInput } from "./pricing";
 
 const india: RegionPricing = {
-  base: { lat: 9.97, lng: 76.28 },
-  maxBaseDistance: 10,
-  rates: { perDistance: 25_00, locationPerDistance: 0, driveHour: 100_00, serviceHour: 500_00 },
+  rates: { perDistance: 25_00, driveHour: 100_00, serviceHour: 500_00 },
 };
 const leg = (km: number, minutes: number, estimated = false): Leg => ({
   meters: km * 1000,
@@ -19,7 +17,6 @@ const price = (input: Partial<PricingInput>, pricing = india) =>
       withVehicle: true,
       requestedHours: 4,
       multiDay: false,
-      baseToFrom: leg(4, 10),
       fromToTo: leg(12, 35),
       ...input,
     },
@@ -49,10 +46,8 @@ describe("hospital visit", () => {
     expect(est.amountMinor).toBe(600_00 + 2 * 500_00);
   });
 
-  it("with a vehicle, can't be booked 10 km or more from the base", () => {
-    const est = price({ baseToFrom: leg(10, 20) });
-    expect(est.outcome).toBe("blocked");
-    expect(est.vehicleAllowed).toBe(false);
+  it("prices long trips automatically: there's no distance limit", () => {
+    expect(price({ requestedHours: 2, fromToTo: leg(40, 70) })).toMatchObject({ outcome: "auto", reasons: [] });
   });
 
   it("without a vehicle, charges round-trip drive hours plus the chosen service hours", () => {
@@ -63,19 +58,8 @@ describe("hospital visit", () => {
     expect(est.outcome).toBe("auto");
   });
 
-  it("without a vehicle, needs an admin 10 km or more from the base", () => {
-    const est = price({ withVehicle: false, requestedHours: 2, baseToFrom: leg(15, 25) });
-    expect(est.outcome).toBe("pendingAdmin");
-    expect(est.reasons).toEqual(["farFromBase"]);
-    expect(est.amountMinor).toBe(1.5 * 100_00 + 2 * 500_00);
-  });
-
-  it("goes to an admin when the market has no base or no rates", () => {
-    expect(price({ baseToFrom: null }, { ...india, base: null })).toMatchObject({
-      outcome: "pendingAdmin",
-      reasons: ["noBase"],
-    });
-    expect(price({}, { ...india, rates: null })).toMatchObject({
+  it("goes to an admin when the market has no rates", () => {
+    expect(price({}, { rates: null })).toMatchObject({
       outcome: "pendingAdmin",
       reasons: ["noRates"],
       amountMinor: null,
@@ -104,8 +88,7 @@ describe("driver", () => {
     expect(est.amountMinor).toBe(550_00);
   });
 
-  it("ignores the base distance and sends multi-day trips to an admin", () => {
-    expect(price({ serviceType: "driver", baseToFrom: leg(40, 60) }).outcome).toBe("auto");
+  it("sends multi-day trips to an admin", () => {
     expect(price({ serviceType: "driver", multiDay: true })).toMatchObject({
       outcome: "pendingAdmin",
       reasons: ["multiDay"],
@@ -135,8 +118,8 @@ describe("distances", () => {
 
   it("reports distances in miles for mile markets", () => {
     const est = priceRoute(
-      { serviceType: "driver", withVehicle: false, requestedHours: 4, multiDay: false, baseToFrom: null, fromToTo: leg(16.09344, 30) },
-      { ...india, maxBaseDistance: 6 },
+      { serviceType: "driver", withVehicle: false, requestedHours: 4, multiDay: false, fromToTo: leg(16.09344, 30) },
+      india,
       "GBP",
       "mile",
     );

@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { APIProvider } from "@vis.gl/react-google-maps";
 import { useLocale } from "next-intl";
-import { PRICING, type LatLng } from "@/config/pricing";
+import type { LatLng } from "@/config/pricing";
 import { regionForLocale, type AppLocale, type Region } from "@/lib/region";
 
 /**
@@ -14,7 +14,7 @@ import { regionForLocale, type AppLocale, type Region } from "@/lib/region";
 const MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
 export const MAPS_ENABLED = MAPS_KEY !== "";
 
-/** Where the map opens when we don't know the device location: our base, else the country. */
+/** Where the map opens when we don't know the device location: the middle of the country. */
 const COUNTRY_CENTER: Record<Region, LatLng> = {
   US: { lat: 39.8, lng: -98.6 },
   CA: { lat: 45.4, lng: -79.4 },
@@ -23,8 +23,7 @@ const COUNTRY_CENTER: Record<Region, LatLng> = {
 };
 
 export function mapFallbackCenter(region: Region): { center: LatLng; zoom: number } {
-  const base = PRICING[region].base;
-  return base ? { center: base, zoom: 14 } : { center: COUNTRY_CENTER[region], zoom: 5 };
+  return { center: COUNTRY_CENTER[region], zoom: 5 };
 }
 
 export function MapsProvider({ children }: { children: ReactNode }) {

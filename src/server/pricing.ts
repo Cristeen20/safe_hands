@@ -32,21 +32,17 @@ export async function estimateBooking(region: Region, v: Pricable): Promise<Esti
   const to = v.servicePoint;
   if (!from || !to || !mapsConfigured()) {
     // No coordinates: nothing to price, an admin quotes it.
-    return { ok: true, estimate: pendingWithoutRoute(currency, distanceUnit, pricing.maxBaseDistance), polyline: null };
+    return { ok: true, estimate: pendingWithoutRoute(currency, distanceUnit), polyline: null };
   }
   if (isTooClose(from, to)) return { ok: false, error: "tooClose" };
 
-  const [fromToTo, baseToFrom] = await Promise.all([
-    routeLeg(from, to, v.scheduledStart),
-    pricing.base ? routeLeg(pricing.base, from, v.scheduledStart) : Promise.resolve(null),
-  ]);
+  const fromToTo = await routeLeg(from, to, v.scheduledStart);
   const estimate = priceRoute(
     {
       serviceType: v.serviceType,
       withVehicle: isOurVehicle(v.vehicle),
       requestedHours: v.estimatedHours ?? 0,
       multiDay: v.days !== null,
-      baseToFrom,
       fromToTo,
     },
     pricing,
@@ -63,7 +59,6 @@ export async function estimateBooking(region: Region, v: Pricable): Promise<Esti
 function pendingWithoutRoute(
   currency: PriceEstimate["currency"],
   distanceUnit: PriceEstimate["distanceUnit"],
-  maxBaseDistance: number,
 ): PriceEstimate {
   return {
     outcome: "pendingAdmin",
@@ -71,9 +66,6 @@ function pendingWithoutRoute(
     currency,
     distanceUnit,
     tripDistance: 0,
-    baseDistance: null,
-    maxBaseDistance,
-    vehicleAllowed: true,
     driveHours: 0,
     billedHours: null,
     serviceHours: null,
