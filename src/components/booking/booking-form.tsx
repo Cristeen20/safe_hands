@@ -4,12 +4,13 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import { useFormatter, useLocale, useTranslations } from "next-intl";
 import {
-  BOOK_SERVICES,
   MAX_ACCOMPANYING,
   MAX_DAYS,
   MAX_HOURS,
   MIN_DRIVER_DAYS,
   hasHours,
+  hasVehicle,
+  isOurVehicle,
   isRouteService,
   minHours,
   vehiclesFor,
@@ -18,11 +19,14 @@ import type { Vehicle } from "@/domain/booking";
 import { Link, useRouter } from "@/i18n/navigation";
 import { regionForLocale, type AppLocale } from "@/lib/region";
 import { zonedToUtc } from "@/lib/time";
-import { ArrowIcon, CarIcon, InfoIcon, KeyIcon, VanIcon, WalkIcon } from "@/components/ui/icons";
+import { CarIcon, InfoIcon, KeyIcon, VanIcon, WalkIcon } from "@/components/ui/icons";
 import { Stepper } from "@/components/ui/stepper";
-import { card, chip, displayHeading, primaryButton } from "@/components/ui/styles";
-import { isDraftComplete, useBookingDraft, withService } from "./draft-context";
+import { card, displayHeading, primaryButton } from "@/components/ui/styles";
+import { isDraftComplete, useBookingDraft, withService, type BookingDraft } from "./draft-context";
 import { ForWhomSection } from "./for-whom-section";
+import { LocationField } from "./location-field";
+import { MapsProvider } from "./maps-provider";
+import { PriceSummary, RoutePreview, isBlocked, payableAmount, useMoney, usePriceEstimate } from "./price-estimate";
 import { WhenSection } from "./when-section";
 
 const VEHICLE_ICON: Record<Vehicle, typeof CarIcon> = {
@@ -65,10 +69,53 @@ export function SettingRow({ label, hint, children }: { label: string; hint?: st
   );
 }
 
+/** "Needed for multiple days?" with a day count, for drivers and companions. */
+function MultiDay({ d, update }: { d: BookingDraft; update: (patch: Partial<BookingDraft>) => void }) {
+  const t = useTranslations("Schedule");
+  return (
+    <div className="flex flex-col rounded-field border border-border">
+      <label className={`${checkRow} min-h-15`}>
+        <input
+          type="checkbox"
+          checked={d.multiDay}
+          onChange={(e) => update({ multiDay: e.target.checked })}
+          className="size-5 accent-primary"
+        />
+        <span className="flex flex-col">
+          {t("multiDay")}
+          <span className="text-[13px] font-medium text-muted">
+            {d.serviceType === "driver" ? t("multiDaySub") : t("multiDaySubCompanion")}
+          </span>
+        </span>
+      </label>
+      {d.multiDay && (
+        <div className="flex min-h-15 items-center justify-between gap-3 border-t border-border px-3.5">
+          <span className="text-[15px] font-semibold">{t("numberOfDays")}</span>
+          <Stepper
+            value={d.driverDays}
+            min={MIN_DRIVER_DAYS}
+            max={MAX_DAYS}
+            onChange={(driverDays) => update({ driverDays })}
+            lessLabel={t("fewerDays")}
+            moreLabel={t("moreDays")}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function BookingForm() {
+  return (
+    <MapsProvider>
+      <BookingFormFields />
+    </MapsProvider>
+  );
+}
+
+function BookingFormFields() {
   const t = useTranslations("Schedule");
   const ts = useTranslations("ServiceType");
-  const tc = useTranslations("ServiceChip");
   const tv = useTranslations("Vehicle");
   const td = useTranslations("Details");
   const tw = useTranslations("When");
@@ -83,6 +130,16 @@ export function BookingForm() {
   const d = draft.serviceType === "tour" ? { ...draft, ...withService(draft, "hospital_visit") } : draft;
   const service = d.serviceType === "tour" ? "hospital_visit" : d.serviceType;
   const route = isRouteService(service);
+  const estimate = usePriceEstimate(d);
+  const payable = payableAmount(estimate);
+  const blocked = isBlocked(estimate);
+  const money = useMoney();
+  // Spec: no vehicle can be sent this far from our base; walking/own car still can.
+  const vehicleBarred =
+    service === "hospital_visit" &&
+    estimate.status === "done" &&
+    estimate.result.ok &&
+    estimate.result.estimate?.vehicleAllowed === false;
 
   const whenLabel =
     d.date && d.time && d.timeZone
@@ -102,7 +159,7 @@ export function BookingForm() {
 
   function next() {
     if (draft.serviceType === "tour") update(withService(draft, service));
-    if (!isDraftComplete(d, region)) {
+    if (!isDraftComplete(d, region) || blocked) {
       setShowIncomplete(true);
       return;
     }
@@ -112,33 +169,23 @@ export function BookingForm() {
   return (
     <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-8">
       <div className="flex flex-col gap-5">
-        <Section n={1} title={t("serviceTitle")}>
-          <fieldset>
-            <legend className="sr-only">{t("serviceLegend")}</legend>
-            <div className="flex flex-wrap gap-2">
-              {BOOK_SERVICES.map((type) => (
-                <button
-                  key={type}
-                  type="button"
-                  aria-pressed={service === type}
-                  onClick={() => update(withService(d, type))}
-                  className={chip(service === type)}
-                >
-                  {tc(type)}
-                </button>
-              ))}
-              <Link
-                href="/tours"
-                className="flex min-h-11 items-center gap-1.5 rounded-full border border-dashed border-primary bg-card px-4 text-[15px] font-semibold text-primary no-underline hover:bg-primary-soft"
-              >
-                {t("guidedTours")}
-                <ArrowIcon size={14} strokeWidth={2.2} />
-              </Link>
-            </div>
-          </fieldset>
-        </Section>
+        <div className={`${card} flex flex-col gap-3 p-5 sm:p-6`}>
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            <h2 className="font-display text-2xl font-bold">{ts(service)}</h2>
+            <Link href="/#services" className="flex min-h-11 items-center text-[15px] font-bold text-primary">
+              {t("changeService")}
+            </Link>
+          </div>
+          {service === "driver" && <p className="text-[15px] leading-relaxed text-muted-strong">{t("driverIntro")}</p>}
+          {service === "hospital_visit" && (
+            <p className="flex items-start gap-3 rounded-field bg-primary-soft p-3.5 text-sm leading-relaxed">
+              <InfoIcon size={20} strokeWidth={1.9} className="mt-px shrink-0" />
+              {t("hospitalTime", { count: d.estimatedHours })}
+            </p>
+          )}
+        </div>
 
-        <Section n={2} title={t("whereTitle")}>
+        <Section n={1} title={t("whereTitle")}>
           {t("regionNote") && (
             <p className="rounded-field bg-accent-soft px-4 py-3 text-sm font-semibold text-ink">
               {t("regionNote")}
@@ -151,62 +198,47 @@ export function BookingForm() {
                 <div className="my-1 w-0.5 flex-1 bg-border-strong" />
                 <div className="size-2.5 bg-ink" />
               </div>
-              <div className="grid flex-1 gap-2.5 sm:grid-cols-2">
-                <label className={`${fieldBox} border-border focus-within:border-primary`}>
-                  <span className="text-xs font-semibold text-muted">{t("from")}</span>
-                  <input
-                    type="text"
-                    required
-                    maxLength={200}
-                    autoComplete="street-address"
-                    placeholder={t("addressPlaceholder")}
-                    value={d.startAddress}
-                    onChange={(e) => update({ startAddress: e.target.value })}
-                    className={fieldInput}
-                  />
-                </label>
-                <label className={`${fieldBox} border-border focus-within:border-primary`}>
-                  <span className="text-xs font-semibold text-muted">{t("to")}</span>
-                  <input
-                    type="text"
-                    required
-                    maxLength={200}
-                    placeholder={t(`destPlaceholder.${service}`)}
-                    value={d.serviceAddress}
-                    onChange={(e) => update({ serviceAddress: e.target.value })}
-                    className={fieldInput}
-                  />
-                </label>
+              <div className="flex flex-1 flex-col gap-4">
+                <LocationField
+                  label={t("from")}
+                  placeholder={t("addressPlaceholder")}
+                  autoComplete="street-address"
+                  value={{ address: d.startAddress, point: d.startPoint, notes: d.startNotes }}
+                  onChange={(v) => update({ startAddress: v.address, startPoint: v.point, startNotes: v.notes })}
+                />
+                <LocationField
+                  label={t("to")}
+                  placeholder={t(`destPlaceholder.${service}`)}
+                  value={{ address: d.serviceAddress, point: d.servicePoint, notes: d.serviceNotes }}
+                  onChange={(v) => update({ serviceAddress: v.address, servicePoint: v.point, serviceNotes: v.notes })}
+                />
               </div>
             </div>
           ) : (
-            <label className={`${fieldBox} border-border focus-within:border-primary`}>
-              <span className="text-xs font-semibold text-muted">{t(`placeLabel.${service}`)}</span>
-              <input
-                type="text"
-                required
-                maxLength={200}
-                autoComplete="street-address"
-                placeholder={t(`placePlaceholder.${service}`)}
-                value={d.serviceAddress}
-                onChange={(e) => update({ serviceAddress: e.target.value })}
-                className={fieldInput}
-              />
-            </label>
+            <LocationField
+              label={t(`placeLabel.${service}`)}
+              placeholder={t(`placePlaceholder.${service}`)}
+              autoComplete="street-address"
+              value={{ address: d.serviceAddress, point: d.servicePoint, notes: d.serviceNotes }}
+              onChange={(v) => update({ serviceAddress: v.address, servicePoint: v.point, serviceNotes: v.notes })}
+            />
           )}
         </Section>
 
-        <Section n={3} title={tw("title")}>
+        <Section n={2} title={tw("title")}>
           <WhenSection />
         </Section>
 
-        <Section n={4} title={tf("title")}>
+        <Section n={3} title={tf("title")}>
           <ForWhomSection />
         </Section>
 
-        <Section n={5} title={t("describeTitle")}>
+        <Section n={4} title={t("describeTitle")}>
           {hasHours(service) && (
-            <SettingRow label={t("hours")} hint={service === "driver" ? t("hoursHintDriver") : t("hoursHint")}>
+            <SettingRow
+              label={t("hours")}
+              hint={service === "driver" ? t("hoursHintDriver", { count: minHours("driver") }) : t("hoursHint")}
+            >
               <Stepper
                 value={d.estimatedHours}
                 min={minHours(service)}
@@ -219,7 +251,7 @@ export function BookingForm() {
             </SettingRow>
           )}
 
-          {route && (
+          {hasVehicle(service) && (
             <fieldset className="flex flex-col">
               <legend className="mb-2.5 text-base font-bold">{t("vehicle")}</legend>
               <div className="grid grid-cols-3 gap-2">
@@ -231,8 +263,9 @@ export function BookingForm() {
                       key={v}
                       type="button"
                       aria-pressed={on}
+                      disabled={vehicleBarred && isOurVehicle(v) && !on}
                       onClick={() => update({ vehicle: v })}
-                      className={`flex min-h-31 flex-col items-start gap-1.5 rounded-2xl text-left ${
+                      className={`flex min-h-31 flex-col items-start gap-1.5 rounded-2xl text-left disabled:opacity-50 ${
                         on
                           ? "border-2 border-primary bg-primary-soft p-3"
                           : "border border-border-strong bg-card p-[13px] hover:border-primary"
@@ -247,6 +280,7 @@ export function BookingForm() {
                   );
                 })}
               </div>
+              {vehicleBarred && <p className="mt-2.5 text-sm font-semibold text-muted-strong">{t("vehicleBarred")}</p>}
             </fieldset>
           )}
 
@@ -290,41 +324,18 @@ export function BookingForm() {
                 />
                 {t("childSeat")}
               </label>
-              <div className="flex flex-col rounded-field border border-border">
-                <label className={`${checkRow} min-h-15`}>
-                  <input
-                    type="checkbox"
-                    checked={d.multiDay}
-                    onChange={(e) => update({ multiDay: e.target.checked })}
-                    className="size-5 accent-primary"
-                  />
-                  <span className="flex flex-col">
-                    {t("multiDay")}
-                    <span className="text-[13px] font-medium text-muted">{t("multiDaySub")}</span>
-                  </span>
-                </label>
-                {d.multiDay && (
-                  <div className="flex min-h-15 items-center justify-between gap-3 border-t border-border px-3.5">
-                    <span className="text-[15px] font-semibold">{t("numberOfDays")}</span>
-                    <Stepper
-                      value={d.driverDays}
-                      min={MIN_DRIVER_DAYS}
-                      max={MAX_DAYS}
-                      onChange={(driverDays) => update({ driverDays })}
-                      lessLabel={t("fewerDays")}
-                      moreLabel={t("moreDays")}
-                    />
-                  </div>
-                )}
-              </div>
+              <MultiDay d={d} update={update} />
             </div>
           )}
 
           {service === "companion" && (
-            <p className="flex items-start gap-3 rounded-field bg-accent-soft p-3.5 text-sm leading-relaxed">
-              <InfoIcon size={20} strokeWidth={1.9} className="mt-px shrink-0" />
-              {t("companionNote")}
-            </p>
+            <>
+              <MultiDay d={d} update={update} />
+              <p className="flex items-start gap-3 rounded-field bg-accent-soft p-3.5 text-sm leading-relaxed">
+                <InfoIcon size={20} strokeWidth={1.9} className="mt-px shrink-0" />
+                {t("companionNote")}
+              </p>
+            </>
           )}
 
           <label className="flex flex-col gap-2">
@@ -365,15 +376,19 @@ export function BookingForm() {
             <dd className="font-medium">{forWhomLabel}</dd>
           </div>
         </dl>
+        <RoutePreview state={estimate} />
+        <PriceSummary state={estimate} />
         {showIncomplete && !isDraftComplete(d, region) && (
           <p role="alert" className="text-sm font-semibold text-red-700">
             {t("incomplete")}
           </p>
         )}
-        <button type="button" onClick={next} className={primaryButton}>
+        <button type="button" onClick={next} disabled={blocked} className={primaryButton}>
           {t(`cta.${service}`)}
         </button>
-        <p className="text-[13px] leading-snug text-muted">{t("quoteNote")}</p>
+        <p className="text-[13px] leading-snug text-muted">
+          {payable ? t("payNote", { amount: money(payable.minor, payable.currency) }) : t("quoteNote")}
+        </p>
       </aside>
     </div>
   );

@@ -32,7 +32,7 @@ async function BookingList() {
     return (
       <div className="flex flex-col items-start gap-4">
         <p className="text-muted">{t("empty")}</p>
-        <Link href="/book" className={`${primaryButton} w-fit`}>
+        <Link href="/#services" className={`${primaryButton} w-fit`}>
           {t("bookFirst")}
         </Link>
       </div>

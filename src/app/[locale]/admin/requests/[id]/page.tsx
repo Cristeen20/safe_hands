@@ -8,6 +8,7 @@ import { formatPhone } from "@/lib/phone";
 import { REGION_CONFIG } from "@/lib/region";
 import { getRequestForAdmin } from "@/server/queries";
 import { RequestActions } from "@/components/admin/request-actions";
+import { EstimateDetails } from "@/components/booking/price-estimate";
 import { placeLabel, serviceDetails } from "@/components/booking/service-details";
 import { BackLink } from "@/components/ui/back-link";
 import { card, displayHeading } from "@/components/ui/styles";
@@ -42,6 +43,9 @@ async function RequestDetail({ params }: { params: Promise<{ id: string }> }) {
     [t("colService"), ts(b.serviceType)],
     [t("details"), serviceDetails(b, td, tv).join(" · ") || "—"],
     [t("colRoute"), placeLabel(b)],
+    ...(b.startNotes || b.serviceNotes
+      ? ([[t("directions"), [b.startNotes, b.serviceNotes].filter(Boolean).join(" · ")]] as [string, string][])
+      : []),
     [
       t("customer"),
       [row.customerName, row.customerPhone && formatPhone(row.customerPhone), row.customerEmail]
@@ -58,7 +62,7 @@ async function RequestDetail({ params }: { params: Promise<{ id: string }> }) {
   ];
   if (row.quote) {
     fields.push([
-      t("quoteLabel"),
+      row.quote.issuedBy ? t("quoteLabel") : t("autoQuote"),
       `${money(row.quote.amountMinor, row.quote.currency)} · ${t("quoteExpires", { date: inBookingZone(row.quote.expiresAt) })}` +
         (row.quote.note ? `\n${row.quote.note}` : ""),
     ]);
@@ -92,12 +96,42 @@ async function RequestDetail({ params }: { params: Promise<{ id: string }> }) {
         ))}
       </dl>
 
+      {b.priceEstimate && (
+        <section aria-labelledby="estimate-title" className={`${card} flex max-w-3xl flex-col gap-3 p-6`}>
+          <h2 id="estimate-title" className="font-display text-xl font-bold">
+            {t("priceTitle")}
+          </h2>
+          {(b.startPoint || b.servicePoint) && (
+            <p className="flex flex-wrap gap-x-4 text-sm">
+              {[b.startPoint, b.servicePoint].map(
+                (p, i) =>
+                  p && (
+                    <a
+                      key={i}
+                      href={`https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-bold text-primary"
+                    >
+                      {i === 0 ? t("mapPickup") : t("mapDestination")}
+                    </a>
+                  ),
+              )}
+            </p>
+          )}
+          <EstimateDetails estimate={b.priceEstimate} forAdmin />
+        </section>
+      )}
+
       {b.status === "submitted" && (
         <RequestActions
           bookingId={b.id}
           currency={currency}
           currencySymbol={currencySymbol}
           expiryPreview={expiryPreview}
+          suggestedAmount={
+            b.priceEstimate?.amountMinor != null ? (b.priceEstimate.amountMinor / 100).toFixed(2) : undefined
+          }
         />
       )}
 

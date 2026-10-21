@@ -12,11 +12,16 @@ The design comes from the "Book a Help" canvas: https://claude.ai/artifact/SNXWp
 
 **Milestone 2 (quote → pay → confirmed) is built, except the real payment providers.** Admins quote or reject (with a reason). Customers accept and pay, or decline. A scheduled job (daily on the Hobby plan, see `vercel.ts`) expires unanswered quotes, and customers get email at each step. Payments currently run through the **dev provider**; the Stripe and Razorpay adapters (`src/server/payments/index.ts`) and their webhooks are next, once the accounts exist.
 
+**Automatic pricing and map picking are built (D28, D29).** Hospital visits and drivers are priced on the server from map points, and auto-priced bookings are paid at once. Two things are needed before this goes live:
+- Google keys (`GOOGLE_MAPS_API_KEY`, `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`). Without them the form falls back to text addresses and admin quotes.
+- India's base location in `src/config/pricing.ts`.
+
 **Still to build:**
 - Stripe Checkout + webhook; Razorpay Standard Checkout + webhook.
 - Helper assignment and staff invitation UI.
-- Tasks and live tracking.
-- Maps and places autocomplete.
+- Tasks and live tracking (the spec's websocket design: the driver sends its position every 5–10 s while `in_progress`, to a `booking:{id}` room for the customer, the assigned helper and admins).
+- Saved places (Home, usual hospital).
+- Rates for the US, Canada and UK (D28).
 - Recipient SMS.
 
 Not built yet from the canvas:
@@ -30,9 +35,9 @@ Not built yet from the canvas:
 | D1 | **Web app**, mobile-first and responsive. No native app. |
 | D2 | **Three roles: customer, admin, helper.** Only the customer app is designed so far. The admin portal and helper app are in scope but have no designs yet. |
 | D3 | **Every booking is scheduled.** There is no "book now". |
-| D4 | **Admin approval with a quote.** A customer submits a booking request. An admin reviews it in the admin portal and approves it with a price quote, or rejects it. |
+| D4 | **Admin approval with a quote.** A customer submits a booking request. An admin reviews it in the admin portal and approves it with a price quote, or rejects it. The exception is a request the pricing rules can price (D28): the server issues that quote itself. |
 | D5 | **Admins assign helpers.** There is no automatic matching and the customer doesn't pick a helper. |
-| D6 | **Pricing is undecided.** Model a quote as an admin-entered amount for now. Don't build any pricing rules. |
+| D6 | **Pricing:** automatic for hospital visits and drivers (D28). Every other service gets an admin-entered quote. |
 | D7 | **Launch markets: United States, Canada, United Kingdom and India.** Each has its own site locale (`/en-US`, `/en-CA`, `/en-GB`, `/en-IN`). See **Localisation**. |
 | D8 | **The customer must accept the quote.** A booking is only confirmed after the customer accepts. They can also decline. |
 | D9 | **One Next.js app, three role-based views**: customer (`/`), admin (`/admin`), helper (`/helper`). Role checks are enforced on the server for every route and action, not just hidden in the UI. |
@@ -45,14 +50,16 @@ Not built yet from the canvas:
 | D16 | **No cancellation in v1.** Neither customers nor admins can cancel a confirmed booking, and there are no refunds. Don't build cancel buttons or refund flows. Customers can still decline a quote, and admins can still reject a request, before any payment. |
 | D17 | **48-hour minimum notice.** A request's scheduled start must be at least 48 hours after it is submitted. Check this on the server at submit time, not just in the date picker. The When screen's day picker starts at the first valid day, not "Today". |
 | D18 | **A responsive website, not an app-like design.** The canvas supplies content and tokens; layouts follow normal website patterns (see **Customer pages**). |
-| D19 | **No service in Quebec.** The Canadian site says "We can't take bookings in Quebec", and admins reject Quebec requests. Once places autocomplete arrives, block Quebec service addresses automatically. No French version is needed. |
+| D19 | **No service in Quebec.** The Canadian site says "We can't take bookings in Quebec", and admins reject Quebec requests. With maps configured, the server blocks map points in Quebec automatically (D29). No French version is needed. |
 | D20 | **No text messages to Indian (+91) numbers, ever.** This covers sign-in codes and recipient updates. <ul><li>Enforced by `canReceiveSms()` (`src/lib/phone.ts`), Better Auth's phone validator and a guard in `src/lib/sms.ts`.</li><li>Indians sign in with an email code (or Google). The Indian site doesn't offer phone sign-in.</li><li>Email-code sign-in is also offered everywhere else as "Continue with email".</li></ul> |
 | D21 | **Payments: Razorpay for India (INR), Stripe for the US, Canada and UK (USD, CAD, GBP).** The provider is chosen by the booking's region (`REGION_CONFIG[region].paymentProvider`). The full quote is charged when the customer accepts it (D13). Both integrations sit behind one payment interface, so the quote-accept flow doesn't care which provider is used. |
 | D22 | **One quote per booking.** A sent quote can't be revised (`quote.booking_id` is unique). To change the price, the customer declines and books again. |
 | D23 | **Rejections carry a reason the customer sees.** It's required; it goes in the rejection email and on the booking page. |
 | D24 | **How customers pay:**<ul><li>US, Canada and UK: Stripe hosted Checkout (redirect).</li><li>India: Razorpay Standard Checkout (pop-up).</li><li>Without provider keys (dev and tests only), a **dev provider** shows a local "simulate payment" page. Production refuses to take payment without keys.</li><li>Confirmation is idempotent (`recordPaymentSuccess` in `src/server/payments/fulfil.ts`). Webhooks, the return page and the Razorpay handler can all report the same payment safely.</li><li>A payment that lands after its quote expired or was declined is kept and flagged `late` for an admin to handle. There's no automatic refund (D16).</li></ul> |
 | D25 | **Every customer needs a real email for quotes.** Customers who signed in by phone are asked for one on the review page before submitting. |
-| D26 | **Seven services** (canvas Home and "Book a service"): hospital visit, driver, companion, property management, surprise gift, camera man and guided tour.<ul><li>Hospital visit, driver and companion have a route (from → to), a vehicle and an hours estimate. Drivers are booked for at least 3 hours, can drive the customer's own car, and can be booked for 2–30 days.</li><li>Property, gift and camera bookings have one location; camera bookings also have hours.</li><li>Which booking columns each service uses is defined by `bookingValues` in `src/domain/booking.ts`.</li><li>The old "errand" and "other" types became "companion" (migration 0003).</li></ul> |
+| D26 | **Seven services** (canvas Home and "Book a service"): hospital visit, driver, companion, property management, surprise gift, camera man and guided tour.<ul><li>Hospital visit, driver and companion have a route (from → to). Only hospital visits and drivers ask for a vehicle (`hasVehicle`); companions store none.</li><li>Hospital visits ask how many hours the visit needs (at least 1), and offer the customer's own car, a small vehicle or a large vehicle (no "no vehicle" option).</li><li>Drivers are booked for at least 4 hours, can drive the customer's own car, and can be booked for 2–30 days.</li><li>Companions give hours, or 2–30 days.</li><li>Property, gift and camera bookings have one location; camera bookings also have hours.</li><li>Which booking columns each service uses is defined by `bookingValues` in `src/domain/booking.ts`.</li><li>The old "errand" and "other" types became "companion" (migration 0003).</li></ul> |
+| D28 | **Automatic pricing** (the "Care Services Spec — Pricing & Location Picking" doc, https://claude.ai/artifact/4TzWsHLiHyZ7yxWwnLy1G9).<ul><li>The rules are in `src/domain/pricing.ts`. Rates, the base location and the base radius are set per region in `src/config/pricing.ts`, in minor units per km or mile.</li><li>Hospital visit with our vehicle: 25/km over the from ⇄ to round trip, 0/km from base to pickup, plus the chosen service hours × 500/hr. It can't be booked if the pickup is 10 km or more from the base.</li><li>Hospital visit in the customer's own car: 100/hr of round-trip driving plus the chosen service hours × 500/hr. A pickup 10 km or more from the base needs an admin.</li><li>Driver: 100/hr × max(the hours asked for, at least 4; the one-way drive time). No return trip.</li><li>Companion: no rule yet, so an admin quotes it.</li><li>Billed hours round up to 0.5 h.</li><li>Only India has rates (INR). The US, Canada and UK have placeholders, so their requests keep admin quotes.</li><li>The server recomputes the price on submit (`submitBookingRequest`):<ul><li>`auto`: a system quote (`quote.issued_by` null), paid at once on the review page.</li><li>`pendingAdmin`: stays `submitted`, with `booking.price_estimate` and its reasons. The admin's quote form is pre-filled with the estimate.</li><li>`blocked`: refused.</li></ul></li><li>Multi-day bookings, routing failures (straight-line fallback), out-of-range prices and points we couldn't check all go to an admin.</li><li>Open questions in the spec stay as config defaults until answered.</li></ul> |
+| D29 | **Maps: Google Maps Platform.**<ul><li>Browser: Places autocomplete limited to the market's country, and an inline map with a fixed centre pin (no full-screen picker, D18). Code: `src/components/booking/location-field.tsx`.</li><li>Server: the Routes API (traffic-aware for the booked hour) and Geocoding, which checks the market's country and blocks Quebec (D19). Code: `src/server/maps.ts`, cached with `"use cache"`.</li><li>Each picked point is stored as `start_point` / `service_point` (lat, lng, place id, source), with free-text notes for entrance, floor or landmark.</li></ul> |
 | D27 | **Guided tours go through the same request → quote → pay flow (D4).**<ul><li>Packages: pre-booking a package sends a request for N people, starting at the package's departure. The tours page shows how many people have pre-booked each package (requests that aren't rejected, declined or expired).</li><li>Staycations and custom trips have a day, time, length in days and party size.</li><li>Tour bookings are always for the customer themself.</li><li>Packages and stay locations live in `src/config/tours.ts` until there's an admin screen. Their departure dates are **samples** and must be replaced before launch.</li></ul> |
 
 ## Localisation (US, Canada, UK, India)
@@ -102,10 +109,10 @@ The canvas is a phone-app mockup. The product is a **responsive website** (D18).
 
 | Route | Canvas source | Page |
 | --- | --- | --- |
-| `/` | Home | Follows the Home artboard: hero, "What do you need?" (hospital, driver, companion, guided tours, property management, something special), "How to use", and the "Ready to go?" quick form |
-| `/book` | Book a service, When, For whom | **One page** with five numbered sections. A summary sidebar with the service's call to action sits beside them on desktop and below them on phones. <ul><li>What do you need: service chips, plus a link to Guided tours</li><li>Where: from → to, or one location</li><li>When: day + time, from the first day 48 h ahead</li><li>Who for: me / someone else, with name + phone</li><li>Describe the service: the fields for the chosen service (D26)</li></ul> |
+| `/` | Home (redesign canvas, https://claude.ai/artifact/Ne2w6UV8GYxyLFb26fzexa) | A calm layout: the "You don't have to go alone." hero with a promise card; "How can we help?" as tiles (hospital visit in primary-soft, driver in accent-soft, companion, property check, guided tours); and three short "How it works" steps. Uses the site's existing tokens. The "Ready to go?" quick form was removed. |
+| `/book` | Book a service, When, For whom | **One page.** The service is chosen on Home (the header's "Book a help" goes to Home's service list); `/book` has no service picker. It opens with the service name, its description and a "Change service" link, then four numbered sections. A summary sidebar with the service's call to action sits beside them on desktop and below them on phones. <ul><li>Where: from → to, or one location</li><li>When: day + time, from the first day 48 h ahead</li><li>Who for: me / someone else, with name + phone</li><li>Describe the service: the fields for the chosen service (D26)</li></ul> |
 | `/tours` | Guided tours | Packages / Staycation / Custom trip (D27) |
-| `/book/review` | (new) | Summary + "Submit request". Requires sign-in, then returns here. |
+| `/book/review` | (new) | Summary, the price (D28), then "Book and pay" (auto-priced) or "Submit request". Requires sign-in, then returns here. |
 | `/sign-in`, `/sign-in/verify` | Sign in, Verify | Centred card: phone number, then a 4-digit code |
 | `/activity` | Activity | "My bookings", grouped as waiting on our team / upcoming / past |
 | `/activity/[id]` | Service tracking | Not built yet: live map, task timeline, details, Receipt / Rebook / Invoice |
@@ -182,13 +189,13 @@ The canvas is a phone-app mockup. The product is a **responsive website** (D18).
     - Sign-in uses a 4-digit code sent by SMS (US, Canadian and UK numbers) or by email (everyone, and the only option in India). Google sign-in is optional.
     - `user.role` is `input: false`, so a client can never set it.
 - **Payments** (not built yet): Stripe for USD, CAD and GBP, and Razorpay for INR (D21). The full quote is charged when the customer accepts it (D13).
-- **Maps and real-time**: a maps/places provider for address autocomplete and the live map. Location pushed over WebSockets or a real-time service.
+- **Maps**: Google Maps Platform (D29) through `@vis.gl/react-google-maps`. Live tracking over WebSockets is not built yet.
 - **Email**: a transactional email provider (e.g. Resend) with React Email templates, localised per locale.
 - **SMS**: a provider for the sign-in code and recipient texts only.
 
 ## Open decisions
 
-1. Pricing model (deferred, D6).
+1. Pricing: rates for the US, Canada and UK; India's base location; and the spec's open questions (our vehicle or the customer's; the 500/hr service rate; the 10 km rule; driver billing and return trips; companion pricing).
 2. Product name (D12).
 
 ## Commands
@@ -220,13 +227,14 @@ Copy `.env.example` to `.env.local` and set `DATABASE_URL` and `BETTER_AUTH_SECR
     - `authz.ts` holds `requireUser` and `requireRole`. Call them in **every** staff page and server action (D9).
     - `phone.ts`, `region.ts` and `time.ts` handle phone numbers, regions and time zones.
 - `src/server/`: server-side code.
-    - Server actions: `bookings.ts` (customer), `admin.ts` (quote/reject) and `dev-payments.ts`.
+    - Server actions: `bookings.ts` (customer), `admin.ts` (quote/reject), `estimates.ts` (live price for `/book`) and `dev-payments.ts`.
+    - `pricing.ts` (prices a booking from its map points) and `maps.ts` (Google Routes and Geocoding).
     - `queries.ts`, `notifications.ts` (emails) and `transitions.ts` (guarded status changes and their audit rows).
     - `payments/`: provider choice, checkout and idempotent fulfilment.
 - `src/app/api/cron/`: scheduled jobs, protected by `CRON_SECRET`.
 - `src/components/site/`: header, footer and the shared page `container`.
 - `src/components/booking/`: the booking form and its sections. The draft booking lives in `draft-context.tsx` (sessionStorage) until it's submitted.
-- `src/config/brand.ts`: the product name (D12). `src/config/tours.ts`: tour packages and stay locations (D27).
+- `src/config/brand.ts`: the product name (D12). `src/config/tours.ts`: tour packages and stay locations (D27). `src/config/pricing.ts`: rates and base locations (D28).
 
 ## Working conventions
 

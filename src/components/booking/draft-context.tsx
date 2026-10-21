@@ -5,13 +5,16 @@ import type { ReactNode } from "react";
 import {
   MIN_DRIVER_DAYS,
   bookingRequestSchema,
+  isRouteService,
   minHours,
   vehiclesFor,
+  type GeoPoint,
   type ServiceType,
   type TourKind,
   type Vehicle,
 } from "@/domain/booking";
 import type { Region } from "@/lib/region";
+import { MAPS_ENABLED } from "./maps-provider";
 
 /**
  * The booking a customer is building. It lives in the browser until they sign
@@ -21,7 +24,12 @@ import type { Region } from "@/lib/region";
 export type BookingDraft = {
   serviceType: ServiceType;
   startAddress: string;
+  /** Set once the customer confirms a place on the map or picks a search result. */
+  startPoint: GeoPoint | null;
+  startNotes: string;
   serviceAddress: string;
+  servicePoint: GeoPoint | null;
+  serviceNotes: string;
   date: string | null;
   time: string | null;
   timeZone: string | null;
@@ -34,7 +42,7 @@ export type BookingDraft = {
   // Hospital visit
   accompanyingCount: number;
   needsBystander: boolean;
-  // Driver
+  // Driver (multi-day also for companions)
   childSeat: boolean;
   multiDay: boolean;
   driverDays: number;
@@ -52,7 +60,11 @@ export type BookingDraft = {
 export const EMPTY_DRAFT: BookingDraft = {
   serviceType: "hospital_visit",
   startAddress: "",
+  startPoint: null,
+  startNotes: "",
   serviceAddress: "",
+  servicePoint: null,
+  serviceNotes: "",
   date: null,
   time: null,
   timeZone: null,
@@ -139,18 +151,23 @@ export function useBookingDraft(): DraftContextValue {
 
 /**
  * The draft with its service switched, keeping the hours and vehicle valid for
- * the new service (drivers: 3+ hours and "my own car" instead of "no vehicle").
+ * the new service (drivers: 4+ hours; a service with a vehicle choice starts on
+ * "my own car" if the old choice isn't offered).
  */
 export function withService(d: BookingDraft, serviceType: ServiceType): Partial<BookingDraft> {
   const vehicles = vehiclesFor(serviceType);
   return {
     serviceType,
-    vehicle: vehicles.includes(d.vehicle) ? d.vehicle : serviceType === "driver" ? "own" : "none",
+    vehicle: vehicles.includes(d.vehicle) ? d.vehicle : "own",
     estimatedHours: Math.max(minHours(serviceType), d.estimatedHours),
   };
 }
 
-/** True when the draft has everything needed to submit (the same schema the server uses). */
+/**
+ * True when the draft has everything needed to submit (the same schema the
+ * server uses). With maps on, route services also need both points picked.
+ */
 export function isDraftComplete(d: BookingDraft, region: Region): boolean {
+  if (MAPS_ENABLED && isRouteService(d.serviceType) && (!d.startPoint || !d.servicePoint)) return false;
   return bookingRequestSchema.safeParse({ ...d, region }).success;
 }

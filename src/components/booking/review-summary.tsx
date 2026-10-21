@@ -10,7 +10,9 @@ import { submitBookingRequest } from "@/server/bookings";
 import { BackLink } from "@/components/ui/back-link";
 import { card, primaryButton, textInput } from "@/components/ui/styles";
 import { useBookingDraft } from "./draft-context";
+import { PriceSummary, isBlocked, payableAmount, useMoney, usePriceEstimate } from "./price-estimate";
 import { placeLabel, serviceDetails } from "./service-details";
+import { usePayBooking } from "./use-pay-booking";
 
 function Row({ label, href, children }: { label: string; href: string; children: React.ReactNode }) {
   const tc = useTranslations("Common");
@@ -53,6 +55,11 @@ export function ReviewSummary({ needsEmail }: { needsEmail: boolean }) {
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [pending, startTransition] = useTransition();
+  const estimate = usePriceEstimate(draft);
+  const payable = payableAmount(estimate);
+  const money = useMoney();
+  const pay = usePayBooking();
+  const tb = useTranslations("Booking");
 
   if (!ready) return null;
 
@@ -98,13 +105,20 @@ export function ReviewSummary({ needsEmail }: { needsEmail: boolean }) {
         return;
       }
       reset();
-      router.replace("/activity");
+      if (!result.payNow) {
+        router.replace("/activity");
+        return;
+      }
+      // Priced automatically: pay now. If that can't start, the booking page offers it again.
+      const outcome = await pay(result.bookingId);
+      if (!outcome.ok) setError(tb(`errors.${outcome.error}`));
+      if (!outcome.ok || !outcome.redirected) router.replace(`/activity/${result.bookingId}`);
     });
   }
 
   return (
     <div className="flex flex-col gap-5">
-      <p className="text-base leading-snug text-muted-strong">{t("intro")}</p>
+      <p className="text-base leading-snug text-muted-strong">{payable ? t("introPay") : t("intro")}</p>
       <dl className={`${card} px-4`}>
         <Row label={t("service")} href={editHref}>
           {[ts(values.serviceType), ...details].join(" · ")}
@@ -122,12 +136,25 @@ export function ReviewSummary({ needsEmail }: { needsEmail: boolean }) {
               : `${draft.recipient.firstName} ${draft.recipient.lastName} · ${formatPhone(draft.recipient.phone)}`}
           </Row>
         )}
+        {(values.startNotes || values.serviceNotes) && (
+          <Row label={t("notes")} href={editHref}>
+            {[values.startNotes, values.serviceNotes].filter(Boolean).join(" · ")}
+          </Row>
+        )}
         {values.description && (
           <Row label={t("details")} href={editHref}>
             <span className="block whitespace-pre-line">{values.description}</span>
           </Row>
         )}
       </dl>
+      {estimate.status !== "none" && (
+        <section aria-labelledby="price-title" className={`${card} flex flex-col gap-3 p-4`}>
+          <h2 id="price-title" className="font-display text-lg font-bold">
+            {t("price")}
+          </h2>
+          <PriceSummary state={estimate} />
+        </section>
+      )}
       {needsEmail && (
         <label className="flex flex-col gap-1.5 text-sm font-semibold">
           {t("emailLabel")}
@@ -147,8 +174,17 @@ export function ReviewSummary({ needsEmail }: { needsEmail: boolean }) {
           {error}
         </p>
       )}
-      <button type="button" onClick={submit} disabled={pending} className={`${primaryButton} sm:w-fit sm:px-10`}>
-        {pending ? t("submitting") : t("submit")}
+      <button
+        type="button"
+        onClick={submit}
+        disabled={pending || isBlocked(estimate) || estimate.status === "loading"}
+        className={`${primaryButton} sm:w-fit sm:px-10`}
+      >
+        {pending
+          ? t("submitting")
+          : payable
+            ? t("submitAndPay", { amount: money(payable.minor, payable.currency) })
+            : t("submit")}
       </button>
     </div>
   );

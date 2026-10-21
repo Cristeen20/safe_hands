@@ -7,6 +7,7 @@ import { formatPhone } from "@/lib/phone";
 import { getCustomerBooking } from "@/server/queries";
 import { placeLabel, serviceDetails } from "@/components/booking/service-details";
 import { ConfirmingRefresh } from "@/components/booking/confirming-refresh";
+import { EstimateDetails } from "@/components/booking/price-estimate";
 import { QuoteActions } from "@/components/booking/quote-actions";
 import { container } from "@/components/site/container";
 import { BackLink } from "@/components/ui/back-link";
@@ -59,6 +60,12 @@ async function BookingDetail({
             {t("validUntil", { date: inZone(q.expiresAt, { dateStyle: "full", timeStyle: "short" }) })}
           </p>
           {q.note && <p className="whitespace-pre-line">{q.note}</p>}
+          {!q.issuedBy && b.priceEstimate && (
+            <details className="rounded-xl bg-field p-4">
+              <summary className="min-h-11 cursor-pointer content-center font-semibold">{t("breakdown")}</summary>
+              <EstimateDetails estimate={b.priceEstimate} />
+            </details>
+          )}
           {returnedFromPayment ? (
             <>
               <p role="status" className="font-semibold text-primary">

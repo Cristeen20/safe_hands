@@ -14,5 +14,11 @@
   },
   "Footer": {
     "ca": "Canada (excl. Quebec)"
+  },
+  "Review": {
+    "outsideArea": "One of the places is outside the area we serve. We can't take bookings in Quebec."
+  },
+  "Price": {
+    "outsideArea": "One of the places is outside the area we serve. We can't take bookings in Quebec."
   }
 }

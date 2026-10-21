@@ -4,9 +4,9 @@ import { useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { useHydrated } from "@/lib/use-hydrated";
-import { declineQuote, startPayment } from "@/server/bookings";
+import { declineQuote } from "@/server/bookings";
 import { primaryButton, secondaryButton } from "@/components/ui/styles";
-import { openRazorpayCheckout } from "./razorpay-checkout";
+import { usePayBooking } from "./use-pay-booking";
 
 /** D8/D13: accept and pay, or decline, a quoted booking. */
 export function QuoteActions({ bookingId, amountLabel }: { bookingId: string; amountLabel: string }) {
@@ -14,6 +14,7 @@ export function QuoteActions({ bookingId, amountLabel }: { bookingId: string; am
   const locale = useLocale();
   const router = useRouter();
   const hydrated = useHydrated();
+  const pay = usePayBooking();
   const [pending, startTransition] = useTransition();
   const [confirmingDecline, setConfirmingDecline] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,17 +22,9 @@ export function QuoteActions({ bookingId, amountLabel }: { bookingId: string; am
   function accept() {
     setError(null);
     startTransition(async () => {
-      const result = await startPayment(locale, bookingId);
-      if (!result.ok) return setError(t(`errors.${result.error}`));
-      const { start } = result;
-      if (start.kind === "redirect") {
-        // Stripe Checkout (external) or the dev test page: a full navigation.
-        window.location.assign(start.url);
-        return;
-      }
-      const outcome = await openRazorpayCheckout(locale, bookingId, start);
-      if (outcome === "failed") setError(t("errors.verifyFailed"));
-      router.refresh();
+      const outcome = await pay(bookingId);
+      if (!outcome.ok) setError(t(`errors.${outcome.error}`));
+      if (!outcome.ok || !outcome.redirected) router.refresh();
     });
   }
 

@@ -10,27 +10,39 @@ import {
   UnknownTourError,
   bookingRequestSchema,
   bookingValues,
+  isRouteService,
   meetsMinLeadTime,
   paymentWindow,
+  quoteExpiresAt,
   type BookingValues,
 } from "@/domain/booking";
-import { createCheckout, providerFor, type CheckoutStart } from "./payments";
-import { transitionBooking } from "./transitions";
-
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 import { routing } from "@/i18n/routing";
 import { requireUser } from "@/lib/authz";
 import { toE164 } from "@/lib/phone";
 import { regionForLocale } from "@/lib/region";
+import { mapsConfigured } from "./maps";
+import { createCheckout, providerFor, type CheckoutStart } from "./payments";
+import { estimateBooking } from "./pricing";
+import { transitionBooking } from "./transitions";
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export type SubmitResult =
-  | { ok: true; bookingId: string }
-  | { ok: false; error: "invalid" | "invalidPhone" | "leadTime" | "invalidEmail" | "emailTaken" };
+  /** payNow: the pricing rules quoted it automatically; the customer pays straight away. */
+  | { ok: true; bookingId: string; payNow: boolean }
+  | {
+      ok: false;
+      error: "invalid" | "invalidPhone" | "leadTime" | "invalidEmail" | "emailTaken" | "blocked" | "outsideArea" | "tooClose";
+    };
 
 /**
  * D4/D17: a signed-in customer submits a booking request. Everything from the
  * browser is re-validated here; the region comes from the route, not the input.
  * Phone-only customers must also give an email so we can send the quote (D11).
+ *
+ * Route services are priced here from the map points (src/server/pricing.ts).
+ * An "auto" price becomes a system quote at once, so the customer can pay
+ * now; anything else waits for an admin, and a "blocked" one isn't saved.
  */
 export async function submitBookingRequest(
   locale: string,
@@ -73,7 +85,18 @@ export async function submitBookingRequest(
     if (err instanceof UnknownTourError) return { ok: false, error: "invalid" };
     throw err;
   }
-  if (!meetsMinLeadTime(values.scheduledStart, new Date())) return { ok: false, error: "leadTime" };
+  const now = new Date();
+  if (!meetsMinLeadTime(values.scheduledStart, now)) return { ok: false, error: "leadTime" };
+  // With maps on, the picker always sends coordinates for route services.
+  if (mapsConfigured() && isRouteService(values.serviceType) && (!values.startPoint || !values.servicePoint)) {
+    return { ok: false, error: "invalid" };
+  }
+
+  const priced = await estimateBooking(region, values);
+  if (!priced.ok) return { ok: false, error: priced.error };
+  const estimate = priced.estimate;
+  if (estimate?.outcome === "blocked") return { ok: false, error: "blocked" };
+  const autoQuote = estimate?.outcome === "auto" && estimate.amountMinor !== null ? estimate : null;
 
   const bookingId = await db.transaction(async (tx) => {
     let recipientId: string;
@@ -111,6 +134,7 @@ export async function submitBookingRequest(
         recipientId,
         region,
         ...values,
+        priceEstimate: estimate,
         status: "submitted",
       })
       .returning({ id: booking.id });
@@ -121,10 +145,30 @@ export async function submitBookingRequest(
       toStatus: "submitted",
       actorId: user.id,
     });
+
+    if (autoQuote) {
+      await transitionBooking(tx, {
+        bookingId: created.id,
+        from: "submitted",
+        to: "quoted",
+        actor: "system",
+        actorId: null,
+      });
+      await tx.insert(quote).values({
+        bookingId: created.id,
+        amountMinor: autoQuote.amountMinor!,
+        currency: autoQuote.currency,
+        breakdown: autoQuote.lines,
+        issuedBy: null,
+        issuedAt: now,
+        // 48 h notice (D17) leaves at least 24 h, so this can't throw.
+        expiresAt: quoteExpiresAt(now, values.scheduledStart),
+      });
+    }
     return created.id;
   });
 
-  return { ok: true, bookingId };
+  return { ok: true, bookingId, payNow: autoQuote !== null };
 }
 
 /** The signed-in customer's own booking and its quote, or null. */

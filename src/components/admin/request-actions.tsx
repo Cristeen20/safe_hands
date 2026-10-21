@@ -18,11 +18,14 @@ export function RequestActions({
   currency,
   currencySymbol,
   expiryPreview,
+  suggestedAmount,
 }: {
   bookingId: string;
   currency: string;
   currencySymbol: string;
   expiryPreview: string | null;
+  /** The pricing rules' estimate, pre-filled so the admin can approve it or override it. */
+  suggestedAmount?: string;
 }) {
   const t = useTranslations("Admin");
   const locale = useLocale();
@@ -71,6 +74,7 @@ export function RequestActions({
                 <input
                   name="amount"
                   inputMode="decimal"
+                  defaultValue={suggestedAmount}
                   required
                   autoComplete="off"
                   className="h-12 w-full rounded-xl bg-transparent px-2 text-base text-ink outline-none"

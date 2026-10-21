@@ -155,7 +155,7 @@ describe("bookingRequestSchema", () => {
   });
 
   it("rejects hours outside 1–12, unknown slots and long descriptions", () => {
-    expect(bookingRequestSchema.safeParse({ ...valid, estimatedHours: 13 }).success).toBe(false);
+    expect(bookingRequestSchema.safeParse({ ...valid, serviceType: "companion", estimatedHours: 13 }).success).toBe(false);
     expect(bookingRequestSchema.safeParse({ ...valid, time: "15:00" }).success).toBe(false);
     expect(bookingRequestSchema.safeParse({ ...valid, description: "x".repeat(501) }).success).toBe(
       false,
@@ -169,11 +169,14 @@ describe("bookingRequestSchema", () => {
     ).toBe(false);
   });
 
-  it("books drivers for at least 3 hours, and only drivers can use your own car", () => {
-    const driver = { ...valid, serviceType: "driver", estimatedHours: 3, vehicle: "own" };
+  it("books drivers for at least 4 hours; only drivers and hospital visits have a vehicle", () => {
+    const driver = { ...valid, serviceType: "driver", estimatedHours: 4, vehicle: "own" };
     expect(bookingRequestSchema.safeParse(driver).success).toBe(true);
-    expect(bookingRequestSchema.safeParse({ ...driver, estimatedHours: 2 }).success).toBe(false);
-    expect(bookingRequestSchema.safeParse({ ...valid, vehicle: "own" }).success).toBe(false);
+    expect(bookingRequestSchema.safeParse({ ...driver, estimatedHours: 3 }).success).toBe(false);
+    expect(bookingRequestSchema.safeParse({ ...valid, vehicle: "own" }).success).toBe(true);
+    expect(bookingRequestSchema.safeParse({ ...valid, vehicle: "none" }).success).toBe(false);
+    const companion = { ...valid, serviceType: "companion", estimatedHours: 2 };
+    expect(bookingValues(bookingRequestSchema.parse({ ...companion, vehicle: "small" })).vehicle).toBeNull();
   });
 
   it("needs only one location for property, gift and camera bookings", () => {
@@ -197,6 +200,28 @@ describe("bookingRequestSchema", () => {
 
 describe("bookingValues", () => {
   const parse = (input: object) => bookingRequestSchema.parse(input);
+
+  it("keeps hospital visits' chosen hours and map points", () => {
+    const pin = { lat: 51.5, lng: -0.12, placeId: "abc", source: "pin" };
+    const v = bookingValues(
+      parse({
+        region: "GB",
+        serviceType: "hospital_visit",
+        startAddress: "24 Elm Street",
+        startPoint: pin,
+        startNotes: "Blue door",
+        serviceAddress: "St. James Hospital",
+        date: "2026-10-20",
+        time: "09:00",
+        timeZone: "Europe/London",
+        estimatedHours: 1,
+        vehicle: "own",
+        accompanyingCount: 0,
+        recipient: { kind: "self" },
+      }),
+    );
+    expect(v).toMatchObject({ estimatedHours: 1, startPoint: pin, startNotes: "Blue door", servicePoint: null });
+  });
 
   it("keeps only the fields of the chosen service", () => {
     const v = bookingValues(

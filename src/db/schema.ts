@@ -2,6 +2,7 @@ import {
   boolean,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   smallint,
@@ -9,7 +10,8 @@ import {
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
-import { BOOKING_STATUSES, SERVICE_TYPES, TOUR_KINDS, VEHICLES } from "@/domain/booking";
+import { BOOKING_STATUSES, SERVICE_TYPES, TOUR_KINDS, VEHICLES, type GeoPoint } from "@/domain/booking";
+import type { PriceEstimate, PriceLine } from "@/domain/pricing";
 import { REGIONS } from "@/lib/region";
 
 // Column names are snake_case in Postgres (see `casing` in db/index.ts and
@@ -134,8 +136,14 @@ export const booking = pgTable(
     serviceType: serviceTypeEnum().notNull(),
     /** Pickup, for services with a route (hospital visit, driver, companion); otherwise "". */
     startAddress: text().notNull().default(""),
+    /** Map points (coordinates, place id, how it was picked) when maps are configured. */
+    startPoint: jsonb().$type<GeoPoint>(),
+    /** Entrance, floor or landmark. */
+    startNotes: text().notNull().default(""),
     /** Destination, the one location, or the tour's package / stay / place. */
     serviceAddress: text().notNull(),
+    servicePoint: jsonb().$type<GeoPoint>(),
+    serviceNotes: text().notNull().default(""),
     scheduledStart: timestamp({ withTimezone: true }).notNull(),
     timeZone: text().notNull(),
     // Which of the columns below are set depends on the service: see
@@ -160,6 +168,8 @@ export const booking = pgTable(
     submittedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     /** D23: shown to the customer when an admin rejects the request. */
     rejectionReason: text(),
+    /** The server's price for route services, computed at submit (src/domain/pricing.ts). */
+    priceEstimate: jsonb().$type<PriceEstimate>(),
     helperId: text().references(() => user.id),
     ...timestamps,
   },
@@ -181,9 +191,10 @@ export const quote = pgTable("quote", {
   amountMinor: integer().notNull(),
   currency: text().notNull(),
   note: text(),
-  issuedBy: text()
-    .notNull()
-    .references(() => user.id),
+  /** Null for an automatic quote from the pricing rules. */
+  issuedBy: text().references(() => user.id),
+  /** How an automatic quote was worked out. */
+  breakdown: jsonb().$type<PriceLine[]>(),
   issuedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   expiresAt: timestamp({ withTimezone: true }).notNull(),
 });

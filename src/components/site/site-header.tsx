@@ -49,7 +49,7 @@ async function AccountLinks() {
       </Link>
       <SignOutButton className={`${navLink} hidden cursor-pointer sm:block`} />
       <Link
-        href="/book"
+        href="/#services"
         className="ml-1 rounded-full bg-primary px-4 py-2.5 text-[15px] font-semibold text-white no-underline hover:bg-primary-hover"
       >
         {tn("book")}

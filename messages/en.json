@@ -22,7 +22,7 @@
     "none": "No vehicle",
     "noneSub": "Meets you on foot or transit",
     "own": "My own car",
-    "ownSub": "Driver drives your vehicle",
+    "ownSub": "We drive your car",
     "small": "Small vehicle",
     "smallSub": "Car · up to 3 people",
     "large": "Large vehicle",
@@ -41,40 +41,35 @@
     "completed": "Completed"
   },
   "Home": {
-    "heroTitle": "Book a help.",
-    "heroBody": "A driver, a hospital companion, a day out or a guided tour — booked in a minute.",
+    "heroTitle": "You don't have to go alone.",
+    "heroBody": "A kind, checked person to take you to the hospital, drive you, or look in on your home. For you, or for someone you love.",
     "heroNote": "",
-    "whatNeed": "What do you need?",
-    "mostBooked": "Most booked",
-    "hospitalTitle": "Book a hospital visit",
-    "hospitalBody": "A companion from door to doctor and back",
-    "driverTitle": "Book a driver",
-    "driverBody": "By the hour or for multiple days",
+    "heroCta": "Find the right help",
+    "promise": "We stay with you the whole time, and make sure you get home safely.",
+    "promiseNote": "Every helper is identity-checked",
+    "whatNeed": "How can we help?",
+    "hospitalTitle": "Hospital visit",
+    "hospitalBody": "We take you there, stay by your side, and bring you home.",
+    "hospitalCta": "Book a hospital visit",
+    "driverTitle": "Driver",
+    "driverBody": "A careful driver, in your car or ours.",
+    "driverCta": "Book a driver",
     "companionTitle": "Companion",
-    "companionBody": "To the bank, office and more",
-    "toursTitle": "Guided tours",
-    "toursBody": "Packages, staycations and custom trips",
-    "propertyTitle": "Property management",
-    "propertyBody": "Home visits and management",
-    "propertyMore": "Someone to check on your home while you're away — visits, keys, deliveries and small fixes arranged for you.",
+    "companionBody": "A friendly face at the bank, an office or the shops.",
+    "companionCta": "Ask for a companion",
+    "propertyTitle": "Property check",
+    "propertyBody": "We look in on your home while you're away.",
     "propertyCta": "Request a home visit",
-    "special": "Something special",
-    "giftTitle": "Surprise gift",
-    "cameraTitle": "Camera man",
-    "howTitle": "How to use {brand}",
-    "step1Title": "Tell us where and when",
-    "step1Body": "Pickup, the place you need to go, and a day and time.",
-    "step2Title": "Pick the help you need",
-    "step2Body": "Hospital visit, driver, companion or tour — for you or someone you care for.",
-    "step3Title": "Follow every step live",
-    "step3Body": "See your helper on the map and each task as it's done.",
-    "readyTitle": "Ready to go?",
-    "scheduleLater": "Schedule for later",
-    "pickup": "Pickup",
-    "pickupPlaceholder": "Where should we meet you?",
-    "destination": "Destination",
-    "destinationPlaceholder": "Hospital, bank, post office…",
-    "requestQuote": "Request a quote"
+    "toursTitle": "Guided tour",
+    "toursBody": "Pilgrimages and trips, with someone looking after you.",
+    "toursCta": "See guided tours",
+    "howTitle": "How it works",
+    "step1Title": "Tell us what you need.",
+    "step1Body": "Where, when and who it's for.",
+    "step2Title": "See the price.",
+    "step2Body": "You pay only if you agree.",
+    "step3Title": "Follow it live.",
+    "step3Body": "Every step, from wherever you are."
   },
   "Schedule": {
     "title": "Schedule a help",
@@ -93,12 +88,10 @@
     "whereTitle": "Where",
     "summaryTitle": "Your request",
     "service": "Service",
-    "incomplete": "Add the location, a day and time, and — if it's for someone else — their name and phone.",
+    "incomplete": "Add the locations (pick them from the list or the map), a day and time, and — if it's for someone else — their name and phone.",
     "quoteNote": "No payment now. You'll get a quote by email and pay only if you accept it.",
     "regionNote": "",
-    "serviceTitle": "What do you need?",
-    "serviceLegend": "Service",
-    "guidedTours": "Guided tours",
+    "changeService": "Change service",
     "from": "From",
     "to": "To",
     "destPlaceholder": {
@@ -118,7 +111,7 @@
     },
     "vehicle": "Vehicle",
     "hoursHint": "Estimate · billed for time used",
-    "hoursHintDriver": "Minimum 3 hrs · billed for time used",
+    "hoursHintDriver": "Minimum {count} hrs · billed for time used",
     "accompanying": "People accompanying",
     "accompanyingSub": "Family travelling with the patient",
     "fewerPeople": "Fewer people",
@@ -155,7 +148,12 @@
       "property": "Request a visit",
       "gift": "Discuss quote",
       "camera": "Discuss quote"
-    }
+    },
+    "payNote": "You'll pay {amount} when you book. The price is set by distance and time.",
+    "multiDaySubCompanion": "Same companion every day",
+    "driverIntro": "Drop your loved one with care: we drive anywhere, in your car or ours. Drivers are booked for at least 4 hours, or the whole journey if it's longer.",
+    "hospitalTime": "We take them to the hospital and bring them back. The visit itself is planned at about {count, plural, one {# hour} other {# hours}}.",
+    "vehicleBarred": "This pickup is too far from our base to send a vehicle. Choose \"No vehicle\" and our team will review it."
   },
   "When": {
     "title": "When do you need the service?",
@@ -228,7 +226,14 @@
     "emailHint": "We only use it for updates about your bookings.",
     "invalidEmail": "Enter a valid email address so we can send your quote.",
     "emailTaken": "That email belongs to another account. Sign in with it instead, or use a different one.",
-    "backToTours": "Back to guided tours"
+    "backToTours": "Back to guided tours",
+    "introPay": "Check the details, then pay to confirm your booking.",
+    "submitAndPay": "Book and pay {amount}",
+    "price": "Price",
+    "notes": "Directions",
+    "blocked": "We can't send a vehicle that far from our base. Go back and choose \"No vehicle\".",
+    "outsideArea": "One of the places is outside the area we serve.",
+    "tooClose": "The pickup and destination are the same place. Check the addresses."
   },
   "Activity": {
     "title": "My bookings",
@@ -301,7 +306,12 @@
     "latePayment": "Paid after the quote closed: handle manually",
     "historyTitle": "History",
     "system": "System",
-    "details": "Details"
+    "details": "Details",
+    "priceTitle": "Price estimate",
+    "autoQuote": "Automatic quote (pricing rules)",
+    "directions": "Directions",
+    "mapPickup": "Pickup on map",
+    "mapDestination": "Destination on map"
   },
   "Helper": {
     "title": "Your jobs",
@@ -360,7 +370,8 @@
       "tooClose": "This quote expires too soon to pay online. Please contact us.",
       "failed": "We couldn’t start the payment. Please try again.",
       "verifyFailed": "We couldn’t confirm that payment. If you were charged, contact us and we’ll sort it out."
-    }
+    },
+    "breakdown": "How we worked it out"
   },
   "DevPay": {
     "title": "Test payment",
@@ -369,14 +380,6 @@
     "succeed": "Simulate payment succeeded",
     "fail": "Simulate payment failed",
     "back": "Back to the booking"
-  },
-  "ServiceChip": {
-    "hospital_visit": "Hospital visit",
-    "driver": "Driver",
-    "companion": "Companion",
-    "property": "Property",
-    "gift": "Surprise gift",
-    "camera": "Camera man"
   },
   "Tours": {
     "title": "Guided tours",
@@ -438,5 +441,53 @@
       "stay": "Staycation",
       "custom": "Custom trip"
     }
+  },
+  "Location": {
+    "chooseOnMap": "Choose on map",
+    "closeMap": "Hide map",
+    "mapGroup": "Map for {label}",
+    "pinned": "Location set",
+    "pickHint": "Pick an address from the list or choose it on the map.",
+    "moveMap": "Move the map so the pin is on the exact spot.",
+    "findingAddress": "Finding the address…",
+    "confirm": "Confirm location",
+    "useMyLocation": "Use my location",
+    "locating": "Finding you…",
+    "cancel": "Cancel",
+    "approximate": "Your location is approximate. Move the map so the pin is on the exact spot.",
+    "locationDenied": "We couldn't get your location. Search for the address or move the map.",
+    "notesLabel": "Entrance, floor or landmark (optional)",
+    "notesPlaceholder": "Gate 2, 3rd floor"
+  },
+  "Price": {
+    "loading": "Working out the price…",
+    "distance": "Distance",
+    "driveTime": "Drive time",
+    "lines": {
+      "distance": "Vehicle · {quantity} at {rate}",
+      "location": "Pickup distance · {quantity} at {rate}",
+      "driveTime": "Driving · {quantity} at {rate}",
+      "serviceTime": "Hospital visit · {quantity} at {rate}"
+    },
+    "total": "Total",
+    "suggested": "Estimate",
+    "pending": "Our team will review this and email you a quote.",
+    "needsApprovalFar": "This pickup is more than {max} from our base, so it needs approval. We'll email you a quote.",
+    "vehicleTooFar": "We can't send a vehicle more than {max} from our base. Choose \"No vehicle\" instead.",
+    "routeMap": "Map of the route",
+    "reasons": {
+      "farFromBase": "Pickup is {max} or more from the base",
+      "noBase": "No base location is set for this market",
+      "noRates": "No rates are set for this market",
+      "estimatedRoute": "Routing failed: distances are straight-line estimates",
+      "multiDay": "Multi-day booking",
+      "companion": "Companion pricing isn't defined",
+      "outOfRange": "The computed price is outside the allowed range",
+      "noLocation": "No map points (maps weren't configured)",
+      "areaUnchecked": "Couldn't confirm the places are in our service area"
+    },
+    "outsideArea": "One of the places is outside the area we serve.",
+    "tooClose": "The pickup and destination are the same place.",
+    "invalid": "We couldn't work out a price. Check the details."
   }
 }

@@ -11,7 +11,8 @@ test("a guest builds a request, signs in, submits it, and an admin sees it", asy
   await page.goto("/en-GB");
   await page.getByRole("link", { name: /Book a hospital visit/ }).click();
   await expect(page).toHaveURL(/\/en-GB\/book$/);
-  await expect(page.getByRole("button", { name: "Hospital visit", pressed: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Hospital visit", level: 2 })).toBeVisible();
+  await expect(page.getByText("We take them to the hospital and bring them back.", { exact: false })).toBeVisible();
   await page.getByLabel("From", { exact: true }).fill("24 Elm Street, SW1A 1AA");
   await page.getByLabel("To", { exact: true }).fill(destination);
   await page.getByRole("button", { name: "More people" }).click();
@@ -97,22 +98,23 @@ test("the server rejects a request less than 48 hours ahead (D17)", async ({ pag
 });
 
 test("each service asks for its own details", async ({ page }) => {
-  await page.goto("/en-GB/book");
   const describe = page.getByRole("region", { name: "Describe the service" });
 
-  await page.getByRole("button", { name: "Driver", exact: true }).click();
-  await expect(describe.getByText("3 hrs", { exact: true })).toBeVisible();
+  await page.goto("/en-GB");
+  await page.getByRole("link", { name: /Book a driver/ }).click();
+  await expect(page.getByRole("heading", { name: "Driver", level: 2 })).toBeVisible();
+  await expect(describe.getByText("4 hrs", { exact: true })).toBeVisible();
   await expect(describe.getByRole("button", { name: "Fewer hours" })).toBeDisabled();
   await expect(describe.getByRole("button", { name: /My own car/ })).toBeVisible();
   await describe.getByLabel(/Needed for multiple days/).check();
   await expect(describe.getByText("Number of days")).toBeVisible();
 
-  await page.getByRole("button", { name: "Surprise gift" }).click();
-  await expect(page.getByLabel("Deliver to")).toBeVisible();
+  // The service is chosen on Home; /book has no service picker.
+  await page.getByRole("link", { name: "Change service" }).click();
+  await expect(page).toHaveURL(/\/en-GB#services$/);
+  await page.getByRole("link", { name: /Request a home visit/ }).click();
+  await expect(page.getByPlaceholder("Address of the home to visit")).toBeVisible();
   await expect(page.getByLabel("From", { exact: true })).toHaveCount(0);
   await expect(describe.getByText("Vehicle", { exact: true })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Discuss quote" })).toBeVisible();
-
-  await page.getByRole("link", { name: "Guided tours" }).first().click();
-  await expect(page).toHaveURL(/\/en-GB\/tours$/);
+  await expect(page.getByRole("button", { name: "Request a visit" })).toBeVisible();
 });

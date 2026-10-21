@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PRICING_RULES } from "@/config/pricing";
 import { STAY_LOCATIONS, findTourPackage } from "@/config/tours";
 import { REGIONS } from "@/lib/region";
 import { addDays, localDate, zonedToUtc } from "@/lib/time";
@@ -45,27 +46,39 @@ export const BOOK_SERVICES = SERVICE_TYPES.filter(
   (s): s is Exclude<ServiceType, "tour"> => s !== "tour",
 );
 
-/** Services with a pickup and a destination, a vehicle and an hours estimate. */
+/** Services with a pickup and a destination and a vehicle choice. */
 export function isRouteService(s: ServiceType): s is "hospital_visit" | "driver" | "companion" {
   return s === "hospital_visit" || s === "driver" || s === "companion";
 }
 
+/** Services where the customer chooses how many hours they need. */
 export function hasHours(s: ServiceType): boolean {
-  return isRouteService(s) || s === "camera";
+  return s === "hospital_visit" || s === "driver" || s === "companion" || s === "camera";
 }
 
-/** Drivers are booked for at least 3 hours (canvas). */
+/** Drivers are booked for at least 4 hours (pricing spec). */
 export function minHours(s: ServiceType): number {
-  return s === "driver" ? 3 : 1;
+  return s === "driver" ? PRICING_RULES.driverMinHours : 1;
 }
 export const MAX_HOURS = 12;
 
 export const VEHICLES = ["none", "own", "small", "large"] as const;
 export type Vehicle = (typeof VEHICLES)[number];
 
+/** Our vehicle, priced per distance (the customer's own car and "none" aren't). */
+export function isOurVehicle(v: Vehicle | null): boolean {
+  return v === "small" || v === "large";
+}
+
 /** A driver can drive the customer's own car; other helpers can come on foot. */
+/** Hospital visits and drivers ask which vehicle; companions don't. */
+export function hasVehicle(s: ServiceType): s is "hospital_visit" | "driver" {
+  return s === "hospital_visit" || s === "driver";
+}
+
+/** The vehicle choices for a service that asks for one: the customer's car or ours. */
 export function vehiclesFor(s: ServiceType): readonly Vehicle[] {
-  return s === "driver" ? ["own", "small", "large"] : ["none", "small", "large"];
+  return hasVehicle(s) ? ["own", "small", "large"] : [];
 }
 
 export const TOUR_KINDS = ["package", "stay", "custom"] as const;
@@ -170,7 +183,8 @@ export function paymentWindow(quoteExpiresAt: Date, now: Date): PaymentWindow {
  * CLAUDE.md). There is no cancellation in v1 (D16).
  */
 const TRANSITIONS: Record<BookingStatus, Partial<Record<BookingStatus, readonly Actor[]>>> = {
-  submitted: { quoted: ["admin"], rejected: ["admin"] },
+  // "system": an automatic quote from the pricing rules.
+  submitted: { quoted: ["admin", "system"], rejected: ["admin"] },
   quoted: { confirmed: ["customer", "system"], declined: ["customer"], expired: ["system"] },
   confirmed: { assigned: ["admin"] },
   assigned: { in_progress: ["helper"] },
@@ -211,6 +225,20 @@ const when = {
   }, "Unknown time zone"),
 };
 
+export const LOCATION_SOURCES = ["gps", "search", "pin"] as const;
+
+/** A point picked on the map: where the pin was confirmed, and how. */
+export const geoPointSchema = z.object({
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+  placeId: z.string().max(300).default(""),
+  source: z.enum(LOCATION_SOURCES),
+});
+export type GeoPoint = z.infer<typeof geoPointSchema>;
+
+const point = geoPointSchema.nullable().default(null);
+const notes = z.string().trim().max(200).default("");
+
 const base = {
   region: z.enum(REGIONS),
   description: z.string().trim().max(500).default(""),
@@ -221,12 +249,19 @@ const base = {
 const route = {
   ...base,
   startAddress: nonEmpty(200),
+  startPoint: point,
+  startNotes: notes,
   serviceAddress: nonEmpty(200),
-  vehicle: z.enum(["none", "small", "large"]),
-  estimatedHours: count(1, MAX_HOURS),
+  servicePoint: point,
+  serviceNotes: notes,
 };
 
-const place = { ...base, serviceAddress: nonEmpty(200) };
+const multiDay = {
+  multiDay: z.boolean().default(false),
+  driverDays: count(MIN_DRIVER_DAYS, MAX_DAYS).default(MIN_DRIVER_DAYS),
+};
+
+const place = { ...base, serviceAddress: nonEmpty(200), servicePoint: point, serviceNotes: notes };
 
 // A tour party always includes the customer ("People · including you"), so
 // the booking is for them whatever the draft's recipient says.
@@ -241,6 +276,8 @@ export const bookingRequestSchema = z.discriminatedUnion("serviceType", [
   z.object({
     ...route,
     serviceType: z.literal("hospital_visit"),
+    vehicle: z.enum(["own", "small", "large"]),
+    estimatedHours: count(1, MAX_HOURS),
     accompanyingCount: count(0, MAX_ACCOMPANYING),
     needsBystander: z.boolean().default(false),
   }),
@@ -250,10 +287,9 @@ export const bookingRequestSchema = z.discriminatedUnion("serviceType", [
     vehicle: z.enum(["own", "small", "large"]),
     estimatedHours: count(minHours("driver"), MAX_HOURS),
     childSeat: z.boolean().default(false),
-    multiDay: z.boolean().default(false),
-    driverDays: count(MIN_DRIVER_DAYS, MAX_DAYS).default(MIN_DRIVER_DAYS),
+    ...multiDay,
   }),
-  z.object({ ...route, serviceType: z.literal("companion") }),
+  z.object({ ...route, serviceType: z.literal("companion"), estimatedHours: count(1, MAX_HOURS), ...multiDay }),
   z.object({ ...place, serviceType: z.literal("property") }),
   z.object({ ...place, serviceType: z.literal("gift") }),
   z.object({ ...place, serviceType: z.literal("camera"), estimatedHours: count(1, MAX_HOURS) }),
@@ -293,7 +329,11 @@ export class UnknownTourError extends Error {
 export type BookingValues = {
   serviceType: ServiceType;
   startAddress: string;
+  startPoint: GeoPoint | null;
+  startNotes: string;
   serviceAddress: string;
+  servicePoint: GeoPoint | null;
+  serviceNotes: string;
   scheduledStart: Date;
   timeZone: string;
   estimatedHours: number | null;
@@ -312,6 +352,10 @@ export type BookingValues = {
 
 const EMPTY_VALUES = {
   startAddress: "",
+  startPoint: null,
+  startNotes: "",
+  servicePoint: null,
+  serviceNotes: "",
   estimatedHours: null,
   vehicle: null,
   description: "",
@@ -366,15 +410,22 @@ export function bookingValues(req: BookingRequest): BookingValues {
     ...EMPTY_VALUES,
     serviceType: req.serviceType,
     serviceAddress: req.serviceAddress,
+    servicePoint: req.servicePoint,
+    serviceNotes: req.serviceNotes,
     description: req.description,
     scheduledStart: zonedToUtc(req.date, req.time, req.timeZone),
     timeZone: req.timeZone,
   };
+  const start = (r: Pick<BookingValues, "startAddress" | "startPoint" | "startNotes">) => ({
+    startAddress: r.startAddress,
+    startPoint: r.startPoint,
+    startNotes: r.startNotes,
+  });
   switch (req.serviceType) {
     case "hospital_visit":
       return {
         ...common,
-        startAddress: req.startAddress,
+        ...start(req),
         vehicle: req.vehicle,
         estimatedHours: req.estimatedHours,
         accompanyingCount: req.accompanyingCount,
@@ -383,14 +434,19 @@ export function bookingValues(req: BookingRequest): BookingValues {
     case "driver":
       return {
         ...common,
-        startAddress: req.startAddress,
+        ...start(req),
         vehicle: req.vehicle,
         estimatedHours: req.estimatedHours,
         childSeat: req.childSeat,
         days: req.multiDay ? req.driverDays : null,
       };
     case "companion":
-      return { ...common, startAddress: req.startAddress, vehicle: req.vehicle, estimatedHours: req.estimatedHours };
+      return {
+        ...common,
+        ...start(req),
+        estimatedHours: req.estimatedHours,
+        days: req.multiDay ? req.driverDays : null,
+      };
     case "camera":
       return { ...common, estimatedHours: req.estimatedHours };
     case "property":
