@@ -26,7 +26,9 @@ test("en-IN: pre-booking a package sends a request and adds to its count", async
 
 test("custom trips need a place and a date", async ({ page }) => {
   await page.goto("/en-GB/tours");
-  await expect(page.getByText("No group tours are open for booking right now.")).toBeVisible();
+  // Every tour is in India and is offered on every site (D30).
+  await page.getByRole("button", { name: "Packages" }).click();
+  await expect(page.getByRole("button", { name: /Munnar \+ Vagamon/ })).toBeVisible();
   await page.getByRole("button", { name: "Custom trip" }).click();
   await page.getByRole("button", { name: "Discuss quote" }).click();
   await expect(page.getByText("Pick a package, stay or place")).toBeVisible();

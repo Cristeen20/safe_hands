@@ -1,12 +1,10 @@
-import type { Region } from "@/lib/region";
-
 // Guided tours (canvas "Guided tours"). There's no admin screen for these yet,
-// so the packages and stays live here and change with a deploy.
+// so the packages and stays live here and change with a deploy. Every tour is
+// in India and is offered on every site (D30).
 
 export type TourPackage = {
   /** Stable id stored on bookings (`booking.tour_package`). Never reuse one. */
   id: string;
-  region: Region;
   name: string;
   kind: "pilgrimage" | "group_tour";
   days: number;
@@ -20,7 +18,6 @@ export type TourPackage = {
 export const TOUR_PACKAGES: readonly TourPackage[] = [
   {
     id: "malayattoor-bharananganam",
-    region: "IN",
     name: "Malayattoor + Bharananganam",
     kind: "pilgrimage",
     days: 2,
@@ -29,7 +26,6 @@ export const TOUR_PACKAGES: readonly TourPackage[] = [
   },
   {
     id: "munnar-vagamon",
-    region: "IN",
     name: "Munnar + Vagamon",
     kind: "group_tour",
     days: 3,
@@ -38,13 +34,8 @@ export const TOUR_PACKAGES: readonly TourPackage[] = [
   },
 ];
 
-/** Places with a private stay available for a staycation, by region. */
-export const STAY_LOCATIONS: Record<Region, readonly string[]> = {
-  US: [],
-  CA: [],
-  GB: [],
-  IN: ["Munnar", "Vagamon", "Alappuzha"],
-};
+/** Places with a private stay available for a staycation. */
+export const STAY_LOCATIONS: readonly string[] = ["Munnar", "Vagamon", "Alappuzha"];
 
 export function findTourPackage(id: string): TourPackage | undefined {
   return TOUR_PACKAGES.find((p) => p.id === id);

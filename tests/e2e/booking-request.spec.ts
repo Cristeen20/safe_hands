@@ -23,7 +23,7 @@ test("a guest builds a request, signs in, submits it, and an admin sees it", asy
 
   await page.getByRole("button", { name: "Someone else" }).click();
   await page.getByLabel("First name").fill("Anu");
-  await page.getByLabel("Phone").fill("07400 123456");
+  await page.getByLabel("Phone").fill("98765 43210"); // read as Indian on every site (D30)
   await expect(page.getByRole("complementary")).toContainText("Anu");
 
   // Reviewing requires sign-in, then returns here.
@@ -74,7 +74,7 @@ test("the server rejects a request less than 48 hours ahead (D17)", async ({ pag
   // Bypass the date picker: put a slot 24 hours from now straight into the draft.
   await page.evaluate(() => {
     const soon = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    const date = soon.toLocaleDateString("en-CA", { timeZone: "Europe/London" });
+    const date = soon.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
     sessionStorage.setItem(
       "booking-draft:v2",
       JSON.stringify({
@@ -83,7 +83,7 @@ test("the server rejects a request less than 48 hours ahead (D17)", async ({ pag
         serviceAddress: "Post office",
         date,
         time: "12:00",
-        timeZone: "Europe/London",
+        timeZone: "Asia/Kolkata",
         estimatedHours: 1,
         vehicle: "none",
         description: "",

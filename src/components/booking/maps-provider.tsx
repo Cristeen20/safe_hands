@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { APIProvider } from "@vis.gl/react-google-maps";
 import { useLocale } from "next-intl";
 import type { LatLng } from "@/config/pricing";
-import { regionForLocale, type AppLocale, type Region } from "@/lib/region";
+import { SERVICE_COUNTRY, type AppLocale } from "@/lib/region";
 
 /**
  * Browser key for the Maps JavaScript API and Places (restrict it to our
@@ -14,23 +14,18 @@ import { regionForLocale, type AppLocale, type Region } from "@/lib/region";
 const MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
 export const MAPS_ENABLED = MAPS_KEY !== "";
 
-/** Where the map opens when we don't know the device location: the middle of the country. */
-const COUNTRY_CENTER: Record<Region, LatLng> = {
-  US: { lat: 39.8, lng: -98.6 },
-  CA: { lat: 45.4, lng: -79.4 },
-  GB: { lat: 52.6, lng: -1.5 },
-  IN: { lat: 20.6, lng: 78.9 },
-};
+/** Where the map opens when we don't know the device location: the middle of India (D30). */
+const INDIA_CENTER: LatLng = { lat: 20.6, lng: 78.9 };
 
-export function mapFallbackCenter(region: Region): { center: LatLng; zoom: number } {
-  return { center: COUNTRY_CENTER[region], zoom: 5 };
+export function mapFallbackCenter(): { center: LatLng; zoom: number } {
+  return { center: INDIA_CENTER, zoom: 5 };
 }
 
 export function MapsProvider({ children }: { children: ReactNode }) {
   const locale = useLocale() as AppLocale;
   if (!MAPS_ENABLED) return children;
   return (
-    <APIProvider apiKey={MAPS_KEY} region={regionForLocale(locale)} language={locale}>
+    <APIProvider apiKey={MAPS_KEY} region={SERVICE_COUNTRY} language={locale}>
       {children}
     </APIProvider>
   );

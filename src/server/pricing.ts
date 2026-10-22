@@ -17,11 +17,11 @@ type Pricable = Pick<
 /**
  * The server's price for a booking. Only route services (hospital visit,
  * driver, companion) are priced; other services return a null estimate and
- * go to an admin as before. Also checks every map point is inside the market.
+ * go to an admin as before. Also checks every map point is in India (D30).
  */
 export async function estimateBooking(region: Region, v: Pricable): Promise<EstimateResult> {
   const points = [v.startPoint, v.servicePoint].filter((p): p is GeoPoint => p !== null);
-  const areaChecks = mapsConfigured() ? await Promise.all(points.map((p) => serviceArea(p, region))) : [];
+  const areaChecks = mapsConfigured() ? await Promise.all(points.map((p) => serviceArea(p))) : [];
   if (areaChecks.includes("outside")) return { ok: false, error: "outsideArea" };
 
   if (!isRouteService(v.serviceType)) return { ok: true, estimate: null, polyline: null };

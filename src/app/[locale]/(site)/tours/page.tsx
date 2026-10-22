@@ -1,26 +1,22 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { useTranslations } from "next-intl";
-import { getFormatter, getLocale } from "next-intl/server";
+import { getFormatter } from "next-intl/server";
 import { STAY_LOCATIONS, TOUR_PACKAGES } from "@/config/tours";
 import { meetsMinLeadTime } from "@/domain/booking";
-import { regionForLocale, type AppLocale } from "@/lib/region";
 import { zonedToUtc } from "@/lib/time";
 import { tourPartyCounts } from "@/server/queries";
 import { ToursForm, type PackageOption } from "@/components/booking/tours-form";
 import { container } from "@/components/site/container";
 import { displayHeading } from "@/components/ui/styles";
 
-/** This region's packages that can still be booked (D17), with their pre-booked counts. */
+/** Packages that can still be booked (D17), with their pre-booked counts. */
 async function Tours() {
   await connection();
-  const [locale, format] = await Promise.all([getLocale(), getFormatter()]);
-  const region = regionForLocale(locale as AppLocale);
+  const format = await getFormatter();
   const now = new Date();
-  const open = TOUR_PACKAGES.filter(
-    (p) =>
-      p.region === region &&
-      meetsMinLeadTime(zonedToUtc(p.departs.date, p.departs.time, p.departs.timeZone), now),
+  const open = TOUR_PACKAGES.filter((p) =>
+    meetsMinLeadTime(zonedToUtc(p.departs.date, p.departs.time, p.departs.timeZone), now),
   );
   const counts = await tourPartyCounts(open.map((p) => p.id));
   const packages: PackageOption[] = open.map((p) => ({
@@ -37,7 +33,7 @@ async function Tours() {
     }),
     preBooked: counts[p.id] ?? 0,
   }));
-  return <ToursForm packages={packages} stays={[...STAY_LOCATIONS[region]]} />;
+  return <ToursForm packages={packages} stays={[...STAY_LOCATIONS]} />;
 }
 
 export default function ToursPage() {

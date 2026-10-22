@@ -15,7 +15,7 @@ export const sql = postgres(process.env.DATABASE_URL!, { max: 1 });
  */
 export async function createSubmittedBooking(
   customerE164: string,
-  { daysAhead = 5, region = "GB", timeZone = "Europe/London", place = `Clinic ${Date.now()}` } = {},
+  { daysAhead = 5, region = "GB", timeZone = "Asia/Kolkata", place = `Clinic ${Date.now()}` } = {},
 ): Promise<{ id: string; place: string }> {
   const [u] = await sql<{ id: string }[]>`select id from "user" where phone_number = ${customerE164}`;
   if (!u) throw new Error(`No user with phone ${customerE164}; sign them in first`);

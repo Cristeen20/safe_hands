@@ -141,7 +141,7 @@ describe("bookingRequestSchema", () => {
     serviceAddress: "St. James Hospital",
     date: "2026-10-16",
     time: "14:30",
-    timeZone: "Europe/London",
+    timeZone: "Asia/Kolkata",
     estimatedHours: 2,
     vehicle: "small",
     description: "Help with check-in.",
@@ -213,7 +213,7 @@ describe("bookingValues", () => {
         serviceAddress: "St. James Hospital",
         date: "2026-10-20",
         time: "09:00",
-        timeZone: "Europe/London",
+        timeZone: "Asia/Kolkata",
         estimatedHours: 1,
         vehicle: "own",
         accompanyingCount: 0,
@@ -232,7 +232,7 @@ describe("bookingValues", () => {
         serviceAddress: "Airport",
         date: "2026-10-20",
         time: "09:00",
-        timeZone: "Europe/London",
+        timeZone: "Asia/Kolkata",
         estimatedHours: 4,
         vehicle: "own",
         childSeat: true,
@@ -243,7 +243,7 @@ describe("bookingValues", () => {
       }),
     );
     expect(v).toMatchObject({ serviceType: "driver", days: null, childSeat: true, accompanyingCount: null });
-    expect(v.scheduledStart.toISOString()).toBe("2026-10-20T08:00:00.000Z");
+    expect(v.scheduledStart.toISOString()).toBe("2026-10-20T03:30:00.000Z");
   });
 
   it("starts a package tour at its departure", () => {
@@ -254,24 +254,37 @@ describe("bookingValues", () => {
     expect(v.scheduledStart.toISOString()).toBe("2026-11-21T00:30:00.000Z");
   });
 
-  it("rejects packages and stays from another region", () => {
-    expect(() =>
-      bookingValues(parse({ region: "GB", serviceType: "tour", tourKind: "package", tourPackage: "munnar-vagamon", partySize: 2 })),
-    ).toThrow(UnknownTourError);
+  it("offers India's tours on every site, and rejects ones we don't offer (D30)", () => {
+    const pkg = { serviceType: "tour", tourKind: "package", partySize: 2 } as const;
+    expect(bookingValues(parse({ ...pkg, region: "GB", tourPackage: "munnar-vagamon" })).tourPackage).toBe("munnar-vagamon");
+    expect(() => bookingValues(parse({ ...pkg, region: "GB", tourPackage: "nowhere" }))).toThrow(UnknownTourError);
     expect(() =>
       bookingValues(
         parse({
           region: "GB",
           serviceType: "tour",
           tourKind: "stay",
-          stayLocation: "Munnar",
+          stayLocation: "Paris",
           days: 2,
           partySize: 2,
           date: "2026-11-02",
           time: "09:00",
-          timeZone: "Europe/London",
+          timeZone: "Asia/Kolkata",
         }),
       ),
     ).toThrow(UnknownTourError);
+  });
+
+  it("only accepts India time, whichever site the request came from (D30)", () => {
+    const request = {
+      region: "US",
+      serviceType: "property",
+      serviceAddress: "12 MG Road, Kochi",
+      date: "2026-11-02",
+      time: "09:00",
+      recipient: { kind: "self" },
+    };
+    expect(bookingRequestSchema.safeParse({ ...request, timeZone: "Asia/Kolkata" }).success).toBe(true);
+    expect(bookingRequestSchema.safeParse({ ...request, timeZone: "America/New_York" }).success).toBe(false);
   });
 });

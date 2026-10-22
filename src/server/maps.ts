@@ -2,10 +2,10 @@ import "server-only";
 import { cacheLife } from "next/cache";
 import type { LatLng } from "@/config/pricing";
 import { straightLineLeg, type Leg } from "@/domain/pricing";
-import type { Region } from "@/lib/region";
+import { SERVICE_COUNTRY } from "@/lib/region";
 
 // Google Maps Platform on the server: Routes API (traffic-aware drive time for
-// the booked slot) and Geocoding (which country/province a point is in).
+// the booked slot) and Geocoding (which country a point is in).
 // Without GOOGLE_MAPS_API_KEY nothing is called: route requests then go to an
 // admin, as before maps existed.
 
@@ -77,14 +77,14 @@ export async function routeLeg(from: LatLng, to: LatLng, departAt: Date): Promis
   }
 }
 
-type Area = { country: string | null; province: string | null };
+type Area = { country: string | null };
 
 async function fetchArea(p: LatLng): Promise<Area> {
   "use cache";
   cacheLife("days");
   const url = new URL(GEOCODE_URL);
   url.searchParams.set("latlng", `${p.lat},${p.lng}`);
-  url.searchParams.set("result_type", "country|administrative_area_level_1");
+  url.searchParams.set("result_type", "country");
   url.searchParams.set("key", apiKey());
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Geocoding API ${res.status}`);
@@ -92,23 +92,21 @@ async function fetchArea(p: LatLng): Promise<Area> {
     status: string;
     results?: { address_components: { short_name: string; types: string[] }[] }[];
   };
-  if (body.status === "ZERO_RESULTS") return { country: null, province: null };
+  if (body.status === "ZERO_RESULTS") return { country: null };
   if (body.status !== "OK") throw new Error(`Geocoding API ${body.status}`);
   const parts = body.results?.flatMap((r) => r.address_components) ?? [];
   const find = (type: string) => parts.find((c) => c.types.includes(type))?.short_name ?? null;
-  return { country: find("country"), province: find("administrative_area_level_1") };
+  return { country: find("country") };
 }
 
 /**
- * Whether a point is inside the market we serve: in the region's country, and
- * not in Quebec (D19). "unknown" when geocoding failed (an admin checks it).
+ * Whether a point is inside the area we serve: India, whichever site the
+ * booking came from (D30). "unknown" when geocoding failed (an admin checks it).
  */
-export async function serviceArea(p: LatLng, region: Region): Promise<"inside" | "outside" | "unknown"> {
+export async function serviceArea(p: LatLng): Promise<"inside" | "outside" | "unknown"> {
   try {
-    const { country, province } = await fetchArea(round(p));
-    if (country !== region) return "outside";
-    if (region === "CA" && province === "QC") return "outside";
-    return "inside";
+    const { country } = await fetchArea(round(p));
+    return country === SERVICE_COUNTRY ? "inside" : "outside";
   } catch (err) {
     console.error("[maps] geocoding failed", err);
     return "unknown";

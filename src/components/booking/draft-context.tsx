@@ -13,7 +13,7 @@ import {
   type TourKind,
   type Vehicle,
 } from "@/domain/booking";
-import type { Region } from "@/lib/region";
+import { SERVICE_TIME_ZONE, type Region } from "@/lib/region";
 import { MAPS_ENABLED } from "./maps-provider";
 
 /**
@@ -102,7 +102,11 @@ const DraftContext = createContext<DraftContextValue | null>(null);
 function load(): BookingDraft {
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY);
-    return raw ? { ...EMPTY_DRAFT, ...JSON.parse(raw) } : EMPTY_DRAFT;
+    if (!raw) return EMPTY_DRAFT;
+    const draft: BookingDraft = { ...EMPTY_DRAFT, ...JSON.parse(raw) };
+    // A day and time picked before bookings moved to India time (D30) are picked again.
+    if (draft.timeZone && draft.timeZone !== SERVICE_TIME_ZONE) return { ...draft, date: null, time: null, timeZone: null };
+    return draft;
   } catch {
     return EMPTY_DRAFT;
   }

@@ -23,9 +23,9 @@
     "noneSub": "Meets you on foot or transit",
     "own": "My own car",
     "ownSub": "We drive your car",
-    "small": "Small vehicle",
+    "small": "{brand} vehicle – Small",
     "smallSub": "Car · up to 3 people",
-    "large": "Large vehicle",
+    "large": "{brand} vehicle – Large",
     "largeSub": "Van · wheelchair or bulky items",
     "largeSubDriver": "Van · luggage or groups"
   },
@@ -73,7 +73,7 @@
   },
   "Schedule": {
     "title": "Schedule a help",
-    "addressPlaceholder": "Street and postcode",
+    "addressPlaceholder": "Street, area and PIN code",
     "when": "When",
     "whenUnset": "Pick a day and time",
     "forWhom": "For whom",
@@ -159,6 +159,7 @@
     "pickDay": "Pick a day",
     "time": "Time",
     "leadNotice": "Requests need at least 48 hours' notice so our team can approve them.",
+    "indiaTime": "Times are India time (IST), where the help takes place.",
     "unavailable": "{time}, too soon"
   },
   "ForWhom": {
@@ -168,8 +169,8 @@
     "firstName": "First name",
     "lastName": "Last name",
     "phone": "Phone",
-    "note": "We'll text them the helper's name and live updates on the day.",
-    "invalidPhone": "Enter a valid mobile number from the US, Canada, the UK or India."
+    "note": "Add their mobile number so the helper can call them on the day. We don't send text messages in India.",
+    "invalidPhone": "Enter a valid mobile number. Numbers outside India need their country code, like +44."
   },
   "SignIn": {
     "eyebrow": "Sign in",
@@ -453,7 +454,8 @@
     "locating": "Finding you…",
     "cancel": "Cancel",
     "approximate": "Your location is approximate. Move the map so the pin is on the exact spot.",
-    "locationDenied": "We couldn't get your location. Search for the address or move the map."
+    "locationDenied": "We couldn't get your location. Search for the address or move the map.",
+    "outsideIndia": "We only help in India. Move the map to a place in India."
   },
   "Price": {
     "loading": "Working out the price…",

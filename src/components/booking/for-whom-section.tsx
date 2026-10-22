@@ -1,16 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { toE164 } from "@/lib/phone";
-import { regionForLocale, type AppLocale } from "@/lib/region";
+import { SERVICE_COUNTRY } from "@/lib/region";
 import { chip } from "@/components/ui/styles";
 import { useBookingDraft } from "./draft-context";
 
 /** "Me" or "someone else" (with their name and phone), inline in the booking form. */
 export function ForWhomSection() {
   const t = useTranslations("ForWhom");
-  const locale = useLocale() as AppLocale;
   const { draft, update } = useBookingDraft();
   const [phoneError, setPhoneError] = useState(false);
   const other = draft.recipient.kind === "other" ? draft.recipient : null;
@@ -80,7 +79,7 @@ export function ForWhomSection() {
                 setPhoneError(false);
               }}
               onBlur={() =>
-                setPhoneError(!!fields.phone.trim() && !toE164(fields.phone, regionForLocale(locale)))
+                setPhoneError(!!fields.phone.trim() && !toE164(fields.phone, SERVICE_COUNTRY))
               }
               className={input}
             />

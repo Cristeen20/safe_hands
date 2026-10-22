@@ -1,8 +1,1 @@
-{
-  "Schedule": {
-    "addressPlaceholder": "Street, area and PIN code"
-  },
-  "ForWhom": {
-    "note": "Add their mobile number so the helper can call them on the day. We don't send text messages in India."
-  }
-}
+{}

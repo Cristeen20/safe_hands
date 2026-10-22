@@ -1,4 +1,5 @@
 import type { useTranslations } from "next-intl";
+import { BRAND_NAME } from "@/config/brand";
 import type { BookingValues } from "@/domain/booking";
 
 type DetailFields = Pick<
@@ -17,7 +18,7 @@ type DetailFields = Pick<
 
 /**
  * The service-specific facts of a booking as short phrases, e.g.
- * ["Small vehicle", "3 hrs", "1 person accompanying"]. Works on a draft's
+ * ["<brand> vehicle – Small", "3 hrs", "1 person accompanying"]. Works on a draft's
  * `bookingValues` and on a booking row alike, on the server or the client.
  */
 export function serviceDetails(
@@ -27,7 +28,7 @@ export function serviceDetails(
 ): string[] {
   return [
     b.tourKind && t(`tourKind.${b.tourKind}`),
-    b.vehicle && tv(b.vehicle),
+    b.vehicle && tv(b.vehicle, { brand: BRAND_NAME }),
     b.estimatedHours !== null && t("hours", { count: b.estimatedHours }),
     b.days !== null && t("days", { count: b.days }),
     b.partySize !== null && t("people", { count: b.partySize }),

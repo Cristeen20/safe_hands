@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useFormatter, useLocale, useTranslations } from "next-intl";
 import type { DateTimeFormatOptions } from "next-intl";
 import { TIME_SLOTS, bookableDays, isSlotBookable } from "@/domain/booking";
-import { guessTimeZone, regionForLocale, type AppLocale } from "@/lib/region";
+import { SERVICE_COUNTRY, SERVICE_TIME_ZONE, regionForLocale, type AppLocale } from "@/lib/region";
 import { zonedToUtc } from "@/lib/time";
 import { useBookingDraft } from "./draft-context";
 
@@ -24,7 +24,7 @@ export function WhenSection() {
 
   if (!ready || !now) return <div className="h-64" aria-hidden="true" />;
 
-  const timeZone = draft.timeZone ?? guessTimeZone(regionForLocale(locale));
+  const timeZone = SERVICE_TIME_ZONE;
   const days = bookableDays(now, timeZone);
   const date = draft.date && days.includes(draft.date) ? draft.date : null;
   const time = date && draft.time && isSlotBookable(date, draft.time, timeZone, now) ? draft.time : null;
@@ -36,6 +36,7 @@ export function WhenSection() {
     <div className="flex flex-col gap-6">
       <p className="rounded-field bg-primary-soft px-4 py-3 text-sm leading-snug text-primary">
         {t("leadNotice")}
+        {regionForLocale(locale) !== SERVICE_COUNTRY && <> {t("indiaTime")}</>}
       </p>
 
       <div className="flex flex-col gap-3">

@@ -19,7 +19,7 @@ import {
 import { routing } from "@/i18n/routing";
 import { requireUser } from "@/lib/authz";
 import { toE164 } from "@/lib/phone";
-import { regionForLocale } from "@/lib/region";
+import { SERVICE_COUNTRY, regionForLocale } from "@/lib/region";
 import { mapsConfigured } from "./maps";
 import { createCheckout, providerFor, type CheckoutStart } from "./payments";
 import { estimateBooking } from "./pricing";
@@ -74,7 +74,8 @@ export async function submitBookingRequest(
 
   let otherPhone: string | null = null;
   if (req.recipient.kind === "other") {
-    otherPhone = toE164(req.recipient.phone, region);
+    // The person getting help is in India (D30), so a number without + is Indian.
+    otherPhone = toE164(req.recipient.phone, SERVICE_COUNTRY);
     if (!otherPhone) return { ok: false, error: "invalidPhone" };
   }
 

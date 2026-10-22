@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { PRICING_RULES } from "@/config/pricing";
 import { STAY_LOCATIONS, findTourPackage } from "@/config/tours";
-import { REGIONS } from "@/lib/region";
+import { REGIONS, SERVICE_TIME_ZONE } from "@/lib/region";
 import { addDays, localDate, zonedToUtc } from "@/lib/time";
 
 const HOUR = 60 * 60 * 1000;
@@ -215,14 +215,8 @@ export const recipientSchema = z.discriminatedUnion("kind", [
 const when = {
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   time: z.enum(TIME_SLOTS),
-  timeZone: z.string().refine((tz) => {
-    try {
-      new Intl.DateTimeFormat("en", { timeZone: tz });
-      return true;
-    } catch {
-      return false;
-    }
-  }, "Unknown time zone"),
+  /** Services are in India, so bookings are in India time (D30). */
+  timeZone: z.literal(SERVICE_TIME_ZONE),
 };
 
 export const LOCATION_SOURCES = ["gps", "search", "pin"] as const;
@@ -373,14 +367,14 @@ const EMPTY_VALUES = {
 /**
  * Flattens a validated request into booking columns. A package tour takes its
  * start time from the package. Throws UnknownTourError for a package or stay
- * that isn't offered in the request's region.
+ * we don't offer.
  */
 export function bookingValues(req: BookingRequest): BookingValues {
   if (req.serviceType === "tour") {
     const tourCommon = { ...EMPTY_VALUES, serviceType: req.serviceType, tourKind: req.tourKind, partySize: req.partySize };
     if (req.tourKind === "package") {
       const pkg = findTourPackage(req.tourPackage);
-      if (!pkg || pkg.region !== req.region) throw new UnknownTourError();
+      if (!pkg) throw new UnknownTourError();
       return {
         ...tourCommon,
         serviceAddress: pkg.name,
@@ -392,7 +386,7 @@ export function bookingValues(req: BookingRequest): BookingValues {
     }
     const at = { scheduledStart: zonedToUtc(req.date, req.time, req.timeZone), timeZone: req.timeZone };
     if (req.tourKind === "stay") {
-      if (!STAY_LOCATIONS[req.region].includes(req.stayLocation)) throw new UnknownTourError();
+      if (!STAY_LOCATIONS.includes(req.stayLocation)) throw new UnknownTourError();
       return { ...tourCommon, ...at, serviceAddress: req.stayLocation, days: req.days, includeFood: req.includeFood };
     }
     return {
