@@ -108,6 +108,7 @@ const line = (kind: PriceLine["kind"], quantity: number, rateMinor: number): Pri
  *   with our vehicle:      perDistance × round trip.
  *   in the customer's car: driveHour × round-trip drive time.
  * Driver: driveHour × max(requested hours ≥ 4, one-way drive time). No return trip.
+ *   In our vehicle, a one-way drive over 4 hours also pays perDistance × the one-way distance.
  * Companion: no rule yet, always an admin.
  */
 export function priceRoute(
@@ -155,6 +156,9 @@ export function priceRoute(
     const requested = Math.max(PRICING_RULES.driverMinHours, input.requestedHours);
     est.billedHours = Math.max(requested, roundUpHours(est.driveHours));
     if (rates) est.lines.push(line("driveTime", est.billedHours, rates.driveHour));
+    if (rates && input.withVehicle && est.driveHours > PRICING_RULES.driverDistanceAfterHours) {
+      est.lines.push(line("distance", est.tripDistance, rates.perDistance));
+    }
   }
 
   if (est.lines.length > 0 && !reasons.has("multiDay")) {

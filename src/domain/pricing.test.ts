@@ -83,9 +83,26 @@ describe("driver", () => {
   });
 
   it("bills the travel time when it's longer than the hours asked for", () => {
-    const est = price({ serviceType: "driver", requestedHours: 4, fromToTo: leg(380, 5 * 60 + 10) });
+    const est = price({ serviceType: "driver", withVehicle: false, requestedHours: 4, fromToTo: leg(380, 5 * 60 + 10) });
     expect(est.billedHours).toBe(5.5);
     expect(est.amountMinor).toBe(550_00);
+  });
+
+  it("in our vehicle, adds 25/km over the one-way trip when the drive takes over 4 hours", () => {
+    const est = price({ serviceType: "driver", withVehicle: true, requestedHours: 4, fromToTo: leg(380, 5 * 60 + 10) });
+    expect(est.lines).toEqual([
+      { kind: "driveTime", quantity: 5.5, rateMinor: 100_00, amountMinor: 550_00 },
+      { kind: "distance", quantity: 380, rateMinor: 25_00, amountMinor: 9500_00 },
+    ]);
+    expect(est.amountMinor).toBe(550_00 + 9500_00);
+    expect(est.outcome).toBe("auto");
+  });
+
+  it("charges no distance for drives of 4 hours or less, or in the customer's own car", () => {
+    const short = price({ serviceType: "driver", withVehicle: true, requestedHours: 6, fromToTo: leg(250, 4 * 60) });
+    expect(short.lines.map((l) => l.kind)).toEqual(["driveTime"]);
+    const own = price({ serviceType: "driver", withVehicle: false, fromToTo: leg(380, 5 * 60 + 10) });
+    expect(own.lines.map((l) => l.kind)).toEqual(["driveTime"]);
   });
 
   it("sends multi-day trips to an admin", () => {
