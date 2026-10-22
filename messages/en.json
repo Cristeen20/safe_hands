@@ -72,7 +72,6 @@
     "step3Body": "Every step, from wherever you are."
   },
   "Schedule": {
-    "title": "Schedule a help",
     "addressPlaceholder": "Street, area and PIN code",
     "when": "When",
     "whenUnset": "Pick a day and time",
@@ -84,7 +83,6 @@
     "fewerHours": "Fewer hours",
     "moreHours": "More hours",
     "counter": "{count} / 500",
-    "intro": "Tell us where, when and what you need. Our team reviews every request and sends you a quote.",
     "whereTitle": "Where",
     "summaryTitle": "Your request",
     "service": "Service",
@@ -151,7 +149,15 @@
     },
     "payNote": "You'll pay {amount} when you book. The price is set by distance and time.",
     "multiDaySubCompanion": "Same companion every day",
-    "driverIntro": "Drop your loved one with care: we drive anywhere, in your car or ours. Drivers are booked for at least 4 hours, or the whole journey if it's longer.",
+    "about": {
+      "hospital_visit": "We take you there, stay by your side, and bring you home.",
+      "driver": "Drop your loved one with care: we drive anywhere, in your car or ours. Drivers are booked for at least 4 hours, or the whole journey if it's longer.",
+      "companion": "A friendly face at the bank, an office or the shops.",
+      "property": "We look in on your home while you're away.",
+      "gift": "We arrange a surprise for someone you love and deliver it with care.",
+      "camera": "A photographer for your event, family day or celebration.",
+      "tour": "Pilgrimages and trips, with someone looking after you."
+    },
     "hospitalTime": "We take them to the hospital and bring them back. The visit itself is planned at about {count, plural, one {# hour} other {# hours}}."
   },
   "When": {

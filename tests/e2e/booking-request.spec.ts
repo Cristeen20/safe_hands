@@ -11,7 +11,7 @@ test("a guest builds a request, signs in, submits it, and an admin sees it", asy
   await page.goto("/en-GB");
   await page.getByRole("link", { name: /Book a hospital visit/ }).click();
   await expect(page).toHaveURL(/\/en-GB\/book$/);
-  await expect(page.getByRole("heading", { name: "Hospital visit", level: 2 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Hospital visit", level: 1 })).toBeVisible();
   await expect(page.getByText("We take them to the hospital and bring them back.", { exact: false })).toBeVisible();
   await page.getByLabel("From", { exact: true }).fill("24 Elm Street, SW1A 1AA");
   await page.getByLabel("To", { exact: true }).fill(destination);
@@ -102,7 +102,7 @@ test("each service asks for its own details", async ({ page }) => {
 
   await page.goto("/en-GB");
   await page.getByRole("link", { name: /Book a driver/ }).click();
-  await expect(page.getByRole("heading", { name: "Driver", level: 2 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Driver", level: 1 })).toBeVisible();
   await expect(describe.getByText("4 hrs", { exact: true })).toBeVisible();
   await expect(describe.getByRole("button", { name: "Fewer hours" })).toBeDisabled();
   await expect(describe.getByRole("button", { name: /My own car/ })).toBeVisible();

@@ -164,12 +164,12 @@ function BookingFormFields() {
       <div className="flex flex-col gap-5">
         <div className={`${card} flex flex-col gap-3 p-5 sm:p-6`}>
           <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-            <h2 className="font-display text-2xl font-bold">{ts(service)}</h2>
+            <h1 className={`${displayHeading} text-3xl md:text-4xl`}>{ts(service)}</h1>
             <Link href="/#services" className="flex min-h-11 items-center text-[15px] font-bold text-primary">
               {t("changeService")}
             </Link>
           </div>
-          {service === "driver" && <p className="text-[15px] leading-relaxed text-muted-strong">{t("driverIntro")}</p>}
+          <p className="max-w-2xl text-[15px] leading-relaxed text-muted-strong">{t(`about.${service}`)}</p>
           {service === "hospital_visit" && (
             <p className="flex items-start gap-3 rounded-field bg-primary-soft p-3.5 text-sm leading-relaxed">
               <InfoIcon size={20} strokeWidth={1.9} className="mt-px shrink-0" />
