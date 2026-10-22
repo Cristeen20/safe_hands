@@ -169,10 +169,10 @@ describe("bookingRequestSchema", () => {
     ).toBe(false);
   });
 
-  it("books drivers for at least 4 hours; only drivers and hospital visits have a vehicle", () => {
-    const driver = { ...valid, serviceType: "driver", estimatedHours: 4, vehicle: "own" };
+  it("doesn't ask drivers for hours; only drivers and hospital visits have a vehicle", () => {
+    const driver = { ...valid, serviceType: "driver", vehicle: "own" };
     expect(bookingRequestSchema.safeParse(driver).success).toBe(true);
-    expect(bookingRequestSchema.safeParse({ ...driver, estimatedHours: 3 }).success).toBe(false);
+    expect(bookingValues(bookingRequestSchema.parse({ ...driver, estimatedHours: 3 })).estimatedHours).toBeNull();
     expect(bookingRequestSchema.safeParse({ ...valid, vehicle: "own" }).success).toBe(true);
     expect(bookingRequestSchema.safeParse({ ...valid, vehicle: "none" }).success).toBe(false);
     const companion = { ...valid, serviceType: "companion", estimatedHours: 2 };
@@ -242,7 +242,7 @@ describe("bookingValues", () => {
         recipient: { kind: "self" },
       }),
     );
-    expect(v).toMatchObject({ serviceType: "driver", days: null, childSeat: true, accompanyingCount: null });
+    expect(v).toMatchObject({ serviceType: "driver", days: null, childSeat: true, accompanyingCount: null, estimatedHours: null });
     expect(v.scheduledStart.toISOString()).toBe("2026-10-20T03:30:00.000Z");
   });
 

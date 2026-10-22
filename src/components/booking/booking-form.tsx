@@ -11,7 +11,6 @@ import {
   hasHours,
   hasVehicle,
   isRouteService,
-  minHours,
   vehiclesFor,
 } from "@/domain/booking";
 import type { Vehicle } from "@/domain/booking";
@@ -230,11 +229,11 @@ function BookingFormFields() {
           {hasHours(service) && (
             <SettingRow
               label={t("hours")}
-              hint={service === "driver" ? t("hoursHintDriver", { count: minHours("driver") }) : t("hoursHint")}
+              hint={t("hoursHint")}
             >
               <Stepper
                 value={d.estimatedHours}
-                min={minHours(service)}
+                min={1}
                 max={MAX_HOURS}
                 onChange={(estimatedHours) => update({ estimatedHours })}
                 lessLabel={t("fewerHours")}

@@ -6,7 +6,6 @@ import {
   MIN_DRIVER_DAYS,
   bookingRequestSchema,
   isRouteService,
-  minHours,
   vehiclesFor,
   type GeoPoint,
   type ServiceType,
@@ -154,16 +153,15 @@ export function useBookingDraft(): DraftContextValue {
 }
 
 /**
- * The draft with its service switched, keeping the hours and vehicle valid for
- * the new service (drivers: 4+ hours; a service with a vehicle choice starts on
- * "my own car" if the old choice isn't offered).
+ * The draft with its service switched, keeping the vehicle valid for the new
+ * service (a service with a vehicle choice starts on "my own car" if the old
+ * choice isn't offered).
  */
 export function withService(d: BookingDraft, serviceType: ServiceType): Partial<BookingDraft> {
   const vehicles = vehiclesFor(serviceType);
   return {
     serviceType,
     vehicle: vehicles.includes(d.vehicle) ? d.vehicle : "own",
-    estimatedHours: Math.max(minHours(serviceType), d.estimatedHours),
   };
 }
 

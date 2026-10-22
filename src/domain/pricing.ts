@@ -30,8 +30,8 @@ export type PendingReason =
   | "areaUnchecked";
 
 export type PriceLine = {
-  kind: "distance" | "driveTime" | "serviceTime";
-  /** Distance in the region's unit, or hours. */
+  kind: "distance" | "driveTime" | "serviceTime" | "minimum";
+  /** Distance in the region's unit, or hours (1 for the minimum charge). */
   quantity: number;
   rateMinor: number;
   amountMinor: number;
@@ -47,7 +47,7 @@ export type PriceEstimate = {
   tripDistance: number;
   /** Driving time (both ways for hospital visits), before rounding. */
   driveHours: number;
-  /** Hours billed for driving or the driver, rounded up. Null when not hourly. */
+  /** Hours of driving billed (hospital visit in the customer's car), rounded up. Null when not hourly. */
   billedHours: number | null;
   serviceHours: number | null;
   /** The quote, or a suggestion for the admin when pending. Null when there is no rule. */
@@ -59,7 +59,7 @@ export type PricingInput = {
   serviceType: "hospital_visit" | "driver" | "companion";
   /** Our vehicle (priced per distance). The customer's own car or none counts as false. */
   withVehicle: boolean;
-  /** The hours the customer asked for: hospital service time, or driver hours (at least the minimum). */
+  /** The hospital service time the customer asked for (unused for drivers). */
   requestedHours: number;
   multiDay: boolean;
   /** Pickup → destination, one way. */
@@ -107,8 +107,9 @@ const line = (kind: PriceLine["kind"], quantity: number, rateMinor: number): Pri
  * Hospital visit (from → to → from), plus serviceHour × the hours asked for:
  *   with our vehicle:      perDistance × round trip.
  *   in the customer's car: driveHour × round-trip drive time.
- * Driver: driveHour × max(requested hours ≥ 4, one-way drive time). No return trip.
- *   In our vehicle, a one-way drive over 4 hours also pays perDistance × the one-way distance.
+ * Driver (no hourly charge, no return trip):
+ *   with our vehicle:      max(driverMinimum, perDistance × one-way distance).
+ *   in the customer's car: driverMinimum.
  * Companion: no rule yet, always an admin.
  */
 export function priceRoute(
@@ -153,11 +154,13 @@ export function priceRoute(
     if (rates) est.lines.push(line("serviceTime", est.serviceHours, rates.serviceHour));
   } else {
     if (input.multiDay) reasons.add("multiDay");
-    const requested = Math.max(PRICING_RULES.driverMinHours, input.requestedHours);
-    est.billedHours = Math.max(requested, roundUpHours(est.driveHours));
-    if (rates) est.lines.push(line("driveTime", est.billedHours, rates.driveHour));
-    if (rates && input.withVehicle && est.driveHours > PRICING_RULES.driverDistanceAfterHours) {
-      est.lines.push(line("distance", est.tripDistance, rates.perDistance));
+    if (rates) {
+      const distance = line("distance", est.tripDistance, rates.perDistance);
+      est.lines.push(
+        input.withVehicle && distance.amountMinor >= rates.driverMinimum
+          ? distance
+          : line("minimum", 1, rates.driverMinimum),
+      );
     }
   }
 

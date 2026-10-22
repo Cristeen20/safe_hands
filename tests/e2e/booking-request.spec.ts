@@ -103,8 +103,8 @@ test("each service asks for its own details", async ({ page }) => {
   await page.goto("/en-GB");
   await page.getByRole("link", { name: /Book a driver/ }).click();
   await expect(page.getByRole("heading", { name: "Driver", level: 1 })).toBeVisible();
-  await expect(describe.getByText("4 hrs", { exact: true })).toBeVisible();
-  await expect(describe.getByRole("button", { name: "Fewer hours" })).toBeDisabled();
+  // Drivers are priced by distance, so there's no hours picker.
+  await expect(describe.getByText("Hours needed")).toHaveCount(0);
   await expect(describe.getByRole("button", { name: /My own car/ })).toBeVisible();
   await describe.getByLabel(/Needed for multiple days/).check();
   await expect(describe.getByText("Number of days")).toBeVisible();

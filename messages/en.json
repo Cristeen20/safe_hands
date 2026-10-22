@@ -109,7 +109,6 @@
     },
     "vehicle": "Vehicle",
     "hoursHint": "Estimate · billed for time used",
-    "hoursHintDriver": "Minimum {count} hrs · billed for time used",
     "accompanying": "People accompanying",
     "accompanyingSub": "Family travelling with the patient",
     "fewerPeople": "Fewer people",
@@ -151,7 +150,7 @@
     "multiDaySubCompanion": "Same companion every day",
     "about": {
       "hospital_visit": "We take you there, stay by your side, and bring you home.",
-      "driver": "Drop your loved one with care: we drive anywhere, in your car or ours. Drivers are booked for at least 4 hours, or the whole journey if it's longer.",
+      "driver": "Drop your loved one with care: we drive anywhere, in your car or ours.",
       "companion": "A friendly face at the bank, an office or the shops.",
       "property": "We look in on your home while you're away.",
       "gift": "We arrange a surprise for someone you love and deliver it with care.",
@@ -470,7 +469,8 @@
     "lines": {
       "distance": "Vehicle · {quantity} at {rate}",
       "driveTime": "Driving · {quantity} at {rate}",
-      "serviceTime": "Hospital visit · {quantity} at {rate}"
+      "serviceTime": "Hospital visit · {quantity} at {rate}",
+      "minimum": "Driver · minimum charge"
     },
     "total": "Total",
     "suggested": "Estimate",

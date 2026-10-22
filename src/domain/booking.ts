@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { PRICING_RULES } from "@/config/pricing";
 import { STAY_LOCATIONS, findTourPackage } from "@/config/tours";
 import { REGIONS, SERVICE_TIME_ZONE } from "@/lib/region";
 import { addDays, localDate, zonedToUtc } from "@/lib/time";
@@ -51,14 +50,9 @@ export function isRouteService(s: ServiceType): s is "hospital_visit" | "driver"
   return s === "hospital_visit" || s === "driver" || s === "companion";
 }
 
-/** Services where the customer chooses how many hours they need. */
+/** Services where the customer chooses how many hours they need (not drivers: they're priced by distance). */
 export function hasHours(s: ServiceType): boolean {
-  return s === "hospital_visit" || s === "driver" || s === "companion" || s === "camera";
-}
-
-/** Drivers are booked for at least 4 hours (pricing spec). */
-export function minHours(s: ServiceType): number {
-  return s === "driver" ? PRICING_RULES.driverMinHours : 1;
+  return s === "hospital_visit" || s === "companion" || s === "camera";
 }
 export const MAX_HOURS = 12;
 
@@ -279,7 +273,6 @@ export const bookingRequestSchema = z.discriminatedUnion("serviceType", [
     ...route,
     serviceType: z.literal("driver"),
     vehicle: z.enum(["own", "small", "large"]),
-    estimatedHours: count(minHours("driver"), MAX_HOURS),
     childSeat: z.boolean().default(false),
     ...multiDay,
   }),
@@ -430,7 +423,6 @@ export function bookingValues(req: BookingRequest): BookingValues {
         ...common,
         ...start(req),
         vehicle: req.vehicle,
-        estimatedHours: req.estimatedHours,
         childSeat: req.childSeat,
         days: req.multiDay ? req.driverDays : null,
       };
