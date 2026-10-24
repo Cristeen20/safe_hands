@@ -4,10 +4,15 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { toE164 } from "@/lib/phone";
 import { SERVICE_COUNTRY } from "@/lib/region";
-import { chip } from "@/components/ui/styles";
+import { GroupIcon, PersonIcon } from "@/components/ui/icons";
 import { useBookingDraft } from "./draft-context";
 
-/** "Me" or "someone else" (with their name and phone), inline in the booking form. */
+const choiceCard = (on: boolean) =>
+  `flex min-h-14 items-center gap-3 rounded-field text-[16px] font-semibold ${
+    on ? "border-2 border-primary bg-primary-soft px-4 text-primary" : "border border-border-strong bg-card px-[17px] text-ink hover:border-primary"
+  }`;
+
+/** "Myself" or "someone else" (with their name and phone), on the details step. */
 export function ForWhomSection() {
   const t = useTranslations("ForWhom");
   const { draft, update } = useBookingDraft();
@@ -23,21 +28,23 @@ export function ForWhomSection() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div role="group" aria-label={t("title")} className="flex gap-2 sm:max-w-sm">
+      <div role="group" aria-label={t("title")} className="grid grid-cols-2 gap-3 sm:max-w-md">
         <button
           type="button"
           aria-pressed={!other}
           onClick={() => update({ recipient: { kind: "self" } })}
-          className={`${chip(!other)} h-12 flex-1`}
+          className={choiceCard(!other)}
         >
+          <PersonIcon size={22} strokeWidth={1.9} />
           {t("me")}
         </button>
         <button
           type="button"
           aria-pressed={!!other}
           onClick={() => setOther({})}
-          className={`${chip(!!other)} h-12 flex-1`}
+          className={choiceCard(!!other)}
         >
+          <GroupIcon size={22} strokeWidth={1.9} />
           {t("someoneElse")}
         </button>
       </div>

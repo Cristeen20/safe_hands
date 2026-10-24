@@ -26,8 +26,8 @@ export const TIME_SLOTS = [
   "19:00",
 ] as const;
 
-/** How many days the When screen offers, starting at the first bookable day. */
-export const BOOKABLE_DAY_COUNT = 5;
+/** How many days the date picker offers, starting at the first bookable day. */
+export const BOOKABLE_DAY_COUNT = 60;
 
 export const SERVICE_TYPES = [
   "hospital_visit",
@@ -138,6 +138,25 @@ export function firstBookableDay(now: Date, timeZone: string): string {
 export function bookableDays(now: Date, timeZone: string): string[] {
   const first = firstBookableDay(now, timeZone);
   return Array.from({ length: BOOKABLE_DAY_COUNT }, (_, i) => addDays(first, i));
+}
+
+const SERVICE_CODES: Record<ServiceType, string> = {
+  hospital_visit: "HV",
+  driver: "DR",
+  companion: "CO",
+  property: "PR",
+  gift: "GF",
+  camera: "CM",
+  tour: "TR",
+};
+
+/**
+ * A short reference customers can quote to us, e.g. "HV-20261022-3F9A1C":
+ * the service, the local start date, and the start of the booking's id.
+ */
+export function bookingReference(b: { id: string; serviceType: ServiceType; scheduledStart: Date; timeZone: string }): string {
+  const day = localDate(b.scheduledStart, b.timeZone).replaceAll("-", "");
+  return `${SERVICE_CODES[b.serviceType]}-${day}-${b.id.replaceAll("-", "").slice(0, 6).toUpperCase()}`;
 }
 
 /**

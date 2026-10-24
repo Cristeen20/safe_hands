@@ -35,7 +35,7 @@ test("custom trips need a place and a date", async ({ page }) => {
 
   await page.getByLabel("Location").fill("Lake District");
   await page.getByLabel("I need a stay").check();
-  await page.getByRole("group", { name: "Pick a day" }).getByRole("button").first().click();
+  await page.getByRole("group", { name: "Pick a day" }).getByRole("button", { disabled: false }).first().click();
   await page.getByRole("group", { name: "Time" }).getByRole("button", { name: "19:00" }).click();
   await page.getByRole("button", { name: "Discuss quote" }).click();
   await expect(page).toHaveURL(/\/en-GB\/sign-in\?next=/);

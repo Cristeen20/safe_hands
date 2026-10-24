@@ -70,7 +70,10 @@ export function SiteHeader() {
           <span className="font-display text-[19px] font-bold tracking-tight">{BRAND_NAME}</span>
         </Link>
         <nav aria-label={tn("label")} className="flex items-center gap-1">
-          <Link href="/#how-it-works" className={`${navLink} hidden md:block`}>
+          <Link href="/#services" className={`${navLink} hidden md:block`}>
+            {tn("services")}
+          </Link>
+          <Link href="/#how-it-works" className={`${navLink} hidden lg:block`}>
             {tn("howItWorks")}
           </Link>
           <Link href="/tours" className={`${navLink} hidden lg:block`}>

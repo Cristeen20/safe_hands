@@ -1,93 +1,123 @@
 import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
-import type { ServiceType } from "@/domain/booking";
+import { SERVICE_PHOTOS, servicePath } from "@/config/services";
 import { Link } from "@/i18n/navigation";
-import { ServiceCardLink } from "@/components/booking/home-actions";
 import { container } from "@/components/site/container";
 import {
   ArrowIcon,
-  CheckIcon,
+  CalendarIcon,
+  CardIcon,
   CompanionIcon,
   HandIcon,
   HomeIcon,
   HospitalIcon,
   MapIcon,
+  ShieldIcon,
   SteeringIcon,
 } from "@/components/ui/icons";
+import { Photo } from "@/components/ui/photo";
 import { displayHeading } from "@/components/ui/styles";
 
-// The calm redesign of Home: one promise, the services as tiles, and how it works (D18).
+// Home: the hero, what we promise, the services as photo cards, and how it works (D18).
 export default function HomePage() {
   const t = useTranslations("Home");
 
+  const trust = [
+    { icon: <ShieldIcon size={22} strokeWidth={1.9} />, label: t("trustVerified") },
+    { icon: <HandIcon size={22} strokeWidth={1.9} />, label: t("trustSafe") },
+    { icon: <CalendarIcon size={22} strokeWidth={1.9} />, label: t("trustAdvance") },
+    { icon: <CardIcon size={22} strokeWidth={1.9} />, label: t("trustPayment") },
+  ];
+
   return (
     <main>
-      <section className={`${container} grid items-center gap-8 pt-12 pb-14 md:grid-cols-[minmax(0,1fr)_22rem] md:gap-14 md:pt-20 md:pb-20`}>
+      <section className={`${container} grid items-center gap-8 pt-10 pb-10 md:grid-cols-2 md:gap-12 md:pt-16 md:pb-14`}>
         <div className="flex flex-col gap-5">
-          <h1 className={`${displayHeading} text-[44px] leading-[1.05] md:text-6xl`}>{t("heroTitle")}</h1>
-          <p className="max-w-xl text-lg leading-relaxed text-muted-strong md:text-xl">{t("heroBody")}</p>
-          {t("heroNote") && <p className="text-[15px] font-semibold text-primary">{t("heroNote")}</p>}
+          <h1 className={`${displayHeading} text-[44px] leading-[1.02] md:text-6xl`}>
+            {t("heroTitle")}
+            <span className="block text-primary">{t("heroTitleAccent")}</span>
+          </h1>
+          <p className="max-w-lg text-lg leading-relaxed text-muted-strong md:text-xl">{t("heroBody")}</p>
           <a
             href="#services"
             className="mt-1 flex h-14 w-fit items-center gap-2 rounded-full bg-primary px-7 text-[17px] font-bold text-white no-underline hover:bg-primary-hover"
           >
             {t("heroCta")}
+            <ArrowIcon size={20} strokeWidth={2.2} />
           </a>
         </div>
-
-        <figure className="flex flex-col gap-4 rounded-[28px] bg-accent-soft p-7">
-          <span className="flex size-14 items-center justify-center rounded-full bg-card text-primary">
-            <HandIcon size={28} strokeWidth={1.8} />
-          </span>
-          <blockquote className="font-display text-2xl leading-snug font-bold">{t("promise")}</blockquote>
-          <figcaption className="flex items-center gap-2 text-[15px] font-semibold text-muted-strong">
-            <CheckIcon size={18} strokeWidth={2.4} className="text-primary" />
-            {t("promiseNote")}
-          </figcaption>
-        </figure>
+        <Photo
+          src={SERVICE_PHOTOS.hero}
+          alt={t("heroPhotoAlt")}
+          icon={<HandIcon size={96} strokeWidth={1.2} />}
+          priority
+          sizes="(min-width: 768px) 50vw, 100vw"
+          className="aspect-4/3 rounded-[28px]"
+        />
       </section>
 
-      <section id="services" className={`${container} flex scroll-mt-20 flex-col gap-5 pb-14`}>
+      <section aria-label={t("trustLabel")} className={`${container} pb-12 md:pb-16`}>
+        <ul className="grid grid-cols-2 gap-x-4 gap-y-3 rounded-card border border-border bg-card p-4 sm:p-5 md:grid-cols-4">
+          {trust.map((item) => (
+            <li key={item.label} className="flex min-h-11 items-center gap-3 text-[15px] font-semibold">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary">
+                {item.icon}
+              </span>
+              {item.label}
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section id="services" className={`${container} flex scroll-mt-20 flex-col gap-2 pb-14`}>
         <h2 className={`${displayHeading} text-3xl md:text-4xl`}>{t("whatNeed")}</h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <ServiceTile
-            serviceType="hospital_visit"
-            tone="bg-primary-soft"
-            icon={<HospitalIcon size={28} strokeWidth={1.8} />}
+        <p className="text-lg text-muted-strong">{t("whatNeedSub")}</p>
+        <div className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <ServiceCard
+            href={servicePath("hospital_visit")}
+            photo={SERVICE_PHOTOS.hospital_visit}
+            icon={<HospitalIcon size={26} strokeWidth={1.8} />}
+            cta="bg-primary text-white"
             title={t("hospitalTitle")}
             body={t("hospitalBody")}
-            cta={t("hospitalCta")}
+            action={t("hospitalCta")}
           />
-          <ServiceTile
-            serviceType="driver"
-            tone="bg-accent-soft"
-            icon={<SteeringIcon size={28} strokeWidth={1.8} />}
+          <ServiceCard
+            href={servicePath("driver")}
+            photo={SERVICE_PHOTOS.driver}
+            icon={<SteeringIcon size={26} strokeWidth={1.8} />}
+            cta="bg-accent text-ink"
             title={t("driverTitle")}
             body={t("driverBody")}
-            cta={t("driverCta")}
+            action={t("driverCta")}
           />
-          <ServiceTile
-            serviceType="companion"
-            icon={<CompanionIcon size={28} strokeWidth={1.8} />}
+          <ServiceCard
+            href={servicePath("companion")}
+            photo={SERVICE_PHOTOS.companion}
+            icon={<CompanionIcon size={26} strokeWidth={1.8} />}
+            cta="bg-accent-soft text-ink"
             title={t("companionTitle")}
             body={t("companionBody")}
-            cta={t("companionCta")}
+            action={t("companionCta")}
           />
-          <ServiceTile
-            serviceType="property"
-            icon={<HomeIcon size={28} strokeWidth={1.8} />}
+          <ServiceCard
+            href={servicePath("property")}
+            photo={SERVICE_PHOTOS.property}
+            icon={<HomeIcon size={26} strokeWidth={1.8} />}
+            cta="bg-primary-soft text-primary"
             title={t("propertyTitle")}
             body={t("propertyBody")}
-            cta={t("propertyCta")}
+            action={t("propertyCta")}
           />
-          <Link href="/tours" className={tileClass("bg-card")}>
-            <TileBody
-              icon={<MapIcon size={28} strokeWidth={1.8} />}
-              title={t("toursTitle")}
-              body={t("toursBody")}
-              cta={t("toursCta")}
-            />
-          </Link>
+          <ServiceCard
+            href="/tours"
+            photo={SERVICE_PHOTOS.tour}
+            icon={<MapIcon size={26} strokeWidth={1.8} />}
+            cta="bg-primary-soft text-primary"
+            title={t("toursTitle")}
+            body={t("toursBody")}
+            action={t("toursCta")}
+          />
         </div>
       </section>
 
@@ -112,37 +142,47 @@ export default function HomePage() {
   );
 }
 
-const tileClass = (tone: string) =>
-  `group flex min-h-60 flex-col gap-4 rounded-[28px] border-2 border-transparent p-6 text-ink no-underline shadow-[0_2px_10px_rgba(20,32,30,0.05)] transition hover:-translate-y-0.5 hover:border-primary ${tone}`;
-
-function ServiceTile({
-  serviceType,
-  tone = "bg-card",
-  ...body
-}: { serviceType: ServiceType; tone?: string } & TileBodyProps) {
+function ServiceCard({
+  href,
+  photo,
+  icon,
+  cta,
+  title,
+  body,
+  action,
+}: {
+  href: string;
+  photo: string | null;
+  icon: ReactNode;
+  /** Colours of the call-to-action pill. */
+  cta: string;
+  title: string;
+  body: string;
+  action: string;
+}) {
   return (
-    <ServiceCardLink serviceType={serviceType} className={tileClass(tone)}>
-      <TileBody {...body} />
-    </ServiceCardLink>
-  );
-}
-
-type TileBodyProps = { icon: ReactNode; title: string; body: string; cta: string };
-
-function TileBody({ icon, title, body, cta }: TileBodyProps) {
-  return (
-    <>
-      <span className="flex size-14 items-center justify-center rounded-full bg-card text-primary group-[.bg-card]:bg-primary-soft">
-        {icon}
-      </span>
-      <span className="flex flex-col gap-1">
+    <Link
+      href={href}
+      className="group flex flex-col overflow-hidden rounded-card border border-border bg-card text-ink no-underline shadow-[0_2px_10px_rgba(20,32,30,0.05)] transition hover:-translate-y-0.5 hover:border-primary"
+    >
+      <Photo
+        src={photo}
+        alt=""
+        icon={icon}
+        sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+        className="aspect-16/10 [&>svg]:size-20"
+      />
+      <span className="relative flex flex-1 flex-col gap-1.5 px-5 pt-9 pb-5">
+        <span className="absolute -top-7 left-5 flex size-14 items-center justify-center rounded-full border-4 border-card bg-primary-soft text-primary">
+          {icon}
+        </span>
         <span className="font-display text-2xl font-bold">{title}</span>
-        <span className="text-base leading-snug text-muted-strong">{body}</span>
+        <span className="flex-1 text-base leading-snug text-muted-strong">{body}</span>
+        <span className={`mt-4 flex min-h-12 w-fit items-center gap-2 rounded-full px-5 text-[15px] font-bold ${cta}`}>
+          {action}
+          <ArrowIcon size={18} strokeWidth={2.2} className="transition-transform group-hover:translate-x-1" />
+        </span>
       </span>
-      <span className="mt-auto flex items-center justify-between gap-3 border-t border-ink/10 pt-3.5 text-base font-bold text-primary">
-        {cta}
-        <ArrowIcon size={20} strokeWidth={2.2} className="transition-transform group-hover:translate-x-1" />
-      </span>
-    </>
+    </Link>
   );
 }

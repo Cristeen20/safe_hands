@@ -110,13 +110,14 @@ The canvas is a phone-app mockup. The product is a **responsive website** (D18).
 
 | Route | Canvas source | Page |
 | --- | --- | --- |
-| `/` | Home (redesign canvas, https://claude.ai/artifact/Ne2w6UV8GYxyLFb26fzexa) | A calm layout: the "You don't have to go alone." hero with a promise card; "How can we help?" as tiles (hospital visit in primary-soft, driver in accent-soft, companion, property check, guided tours); and three short "How it works" steps. Uses the site's existing tokens. The "Ready to go?" quick form was removed. |
-| `/book` | Book a service, When, For whom | **One page.** The service is chosen on Home (the header's "Book a help" goes to Home's service list); `/book` has no service picker. It opens with the service name, its description and a "Change service" link, then four numbered sections. A summary sidebar with the service's call to action sits beside them on desktop and below them on phones. <ul><li>Where: from → to, or one location</li><li>When: day + time, from the first day 48 h ahead</li><li>Who for: me / someone else, with name + phone</li><li>Describe the service: the fields for the chosen service (D26)</li></ul> |
+| `/` | Home (photo redesign, Oct 2026) | Hero ("Your family in safe hands") with a photo, a trust strip (verified staff, safe, booked in advance, secure payment), "Our services" as photo cards that open each service's page, and "How it works". Photos are placeholders until set in `SERVICE_PHOTOS` (`src/config/services.ts`). |
+| `/services/[slug]` | (photo redesign) | One page per service: photo hero, four feature tiles, in-page links (Overview, What's included, Pricing, FAQs) and a "Book" card. Copy is in `ServicePage` in `messages/en.json`. |
+| `/book`, `/book/when`, `/book/options`, `/book/review` | Book a service, When, For whom | **Step by step** with a numbered progress bar: Details (who for, where, notes) → Date & time (month calendar, time slots, service hours) → Options (vehicle cards each showing its price, extras, multiple days; route services only) → Review → Payment (the provider's checkout). A step whose earlier steps are unfinished links back to them. Rules in `src/components/booking/steps.ts`. |
 | `/tours` | Guided tours | Packages / Staycation / Custom trip (D27) |
-| `/book/review` | (new) | Summary, the price (D28), then "Book and pay" (auto-priced) or "Submit request". Requires sign-in, then returns here. |
+| `/book/review` | (new) | Step 4. Summary with Change links, the price (D28), then "Pay … securely" (auto-priced) or "Submit request". Requires sign-in, then returns here. |
 | `/sign-in`, `/sign-in/verify` | Sign in, Verify | Centred card: phone number, then a 4-digit code |
 | `/activity` | Activity | "My bookings", grouped as waiting on our team / upcoming / past |
-| `/activity/[id]` | Service tracking | Not built yet: live map, task timeline, details, Receipt / Rebook / Invoice |
+| `/activity/[id]` | Service tracking | After payment it opens with "Booking confirmed!", the booking ID (`bookingReference`) and what's next. Not built yet: live map, task timeline, Receipt / Rebook / Invoice |
 
 ## Admin portal (not designed yet)
 
