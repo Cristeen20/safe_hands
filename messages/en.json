@@ -679,5 +679,10 @@
     "quoted": "Quote after review",
     "priceTitle": "Your price",
     "reviewSub": "Check the details before you book."
+  },
+  "Demo": {
+    "banner": "Demo with made-up sample data. Nothing here is real, and the buttons are switched off.",
+    "admin": "Admin demo",
+    "helper": "Helper demo"
   }
 }
