@@ -14,6 +14,8 @@ The design comes from the "Book a Help" canvas: https://claude.ai/artifact/SNXWp
 
 **Automatic pricing and map picking are built and live (D28, D29).** Hospital visits and drivers in India are priced on the server from map points, and auto-priced bookings are paid at once. The Google keys (`GOOGLE_MAPS_API_KEY`, `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`) are set on Vercel Production; without them the form falls back to text addresses and admin quotes.
 
+**The live admin portal is open without sign-in (owner's choice, 2026-10-24).** `OPEN_ADMIN=1` on Vercel Production makes `requireRole("admin")` let anyone in as a shared "Open admin" account (`src/lib/authz.ts`). Anyone with the URL can see customer data and quote or reject requests. To lock it again, delete the variable on Vercel and redeploy. The helper page still requires sign-in.
+
 **Still to build:**
 - Stripe Checkout + webhook; Razorpay Standard Checkout + webhook.
 - Helper assignment and staff invitation UI.
