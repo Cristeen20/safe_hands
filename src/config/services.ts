@@ -26,10 +26,10 @@ export function servicePath(service: BookService): string {
  * photos are added.
  */
 export const SERVICE_PHOTOS: Record<ServiceType | "hero", string | null> = {
-  hero: null,
-  hospital_visit: null,
-  driver: null,
-  companion: null,
+  hero: "/photos/hero.jpg",
+  hospital_visit: "/photos/hospital-visit.jpg",
+  driver: "/photos/driver.jpg",
+  companion: "/photos/companion.jpg",
   property: null,
   gift: null,
   camera: null,
