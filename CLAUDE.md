@@ -220,6 +220,7 @@ Copy `.env.example` to `.env.local` and set `DATABASE_URL` and `BETTER_AUTH_SECR
 - `src/app/[locale]/`: pages.
     - Customer pages are in the `(site)` route group, which adds the site header and footer: `/`, `/book`, `/tours`, `/book/review`, `/sign-in`, `/sign-in/verify`, `/activity`, `/helper`.
     - Admin: `/admin/requests[/id]`, with its own desktop layout.
+    - Public demo: `/demo/admin` and `/demo/helper` show the staff pages with made-up data from `src/config/demo-requests.ts`. No sign-in, no database reads, forms switched off, not indexed. The admin pages and the demo share `src/components/admin/` (`AdminChrome`, `RequestQueue`, `RequestDetailView`).
 - `src/app/api/auth/[...all]`: the Better Auth handler.
 - `src/domain/booking.ts`: pure business rules and the Zod request schema. Unit-tested.
     - 48-hour notice (D17), quote expiry (D14), allowed status changes (no cancellation, D16).
