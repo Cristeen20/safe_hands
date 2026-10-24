@@ -210,7 +210,7 @@ The canvas is a phone-app mockup. The product is a **responsive website** (D18).
 | `pnpm lint` / `pnpm typecheck` | ESLint / `tsc` |
 | `pnpm db:generate` / `pnpm db:migrate` | Create / apply Drizzle migrations in `drizzle/` |
 | `curl -H "Authorization: Bearer $CRON_SECRET" localhost:3000/api/cron/expire-quotes` | Run the quote-expiry job by hand (`vercel.ts` schedules it on Vercel) |
-| `localhost:3000/api/dev/admin-login[?email=…]` | **Local only:** signs you in as an admin without a code. Works only under `next dev` with `DEV_ADMIN_LOGIN=1`; returns 404 everywhere else. |
+| `localhost:3000/api/dev/admin-login[?email=…][&role=helper]` | **Local only:** signs you in as an admin (or, with `role=helper`, a helper; a "Dev Helper" is created if none exists) without a code. Works only under `next dev` with `DEV_ADMIN_LOGIN=1`; returns 404 everywhere else. |
 | `pnpm seed:admin "<email or +phone>" "Name"` | Create or promote the first admin (D15). Indian admins use email (D20). |
 
 Copy `.env.example` to `.env.local` and set `DATABASE_URL` and `BETTER_AUTH_SECRET`. Without Twilio or Resend keys, sign-in codes are printed to the `pnpm dev` console as `[sms:dev]` or `[email:dev]`.
