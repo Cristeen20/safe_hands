@@ -33,8 +33,17 @@ export type PendingReason =
   | "noLocation"
   | "areaUnchecked";
 
+/**
+ * The divisions of a hospital visit's price: the service drive (pickup →
+ * hospital → pickup), the drive back to our base, and the service hours.
+ */
+export const PRICE_PARTS = ["serviceDrive", "toBase", "service"] as const;
+export type PricePart = (typeof PRICE_PARTS)[number];
+
 export type PriceLine = {
   kind: "distance" | "driveTime" | "serviceTime" | "minimum";
+  /** Which division the line belongs to (hospital visits). Missing on driver lines and older estimates. */
+  part?: PricePart;
   /** Distance in the region's unit, or hours (1 for the minimum charge). */
   quantity: number;
   rateMinor: number;
@@ -113,9 +122,15 @@ export function roundUpHours(hours: number, step = PRICING_RULES.billedHourStep)
   return Math.ceil(hours / step - 1e-9) * step;
 }
 
+/** The division a trip leg belongs to. */
+export function legPart(kind: TripLeg["kind"]): Exclude<PricePart, "service"> {
+  return kind === "outbound" || kind === "back" ? "serviceDrive" : "toBase";
+}
+
 const toUnit = (meters: number, unit: DistanceUnit) => Math.round((meters / METERS_PER[unit]) * 10) / 10;
-const line = (kind: PriceLine["kind"], quantity: number, rateMinor: number): PriceLine => ({
+const line = (kind: PriceLine["kind"], quantity: number, rateMinor: number, part?: PricePart): PriceLine => ({
   kind,
+  ...(part && { part }),
   quantity,
   rateMinor,
   amountMinor: Math.round(quantity * rateMinor),
@@ -124,9 +139,11 @@ const line = (kind: PriceLine["kind"], quantity: number, rateMinor: number): Pri
 /**
  * Price a hospital visit, driver or companion booking.
  *
- * Hospital visit, over from → to → from → base, plus serviceHour × the hours asked for:
- *   with our vehicle:      perDistance × that distance.
- *   in the customer's car: driveHour × that drive time.
+ * Hospital visit, in three divisions: the service drive (from → to → from),
+ * the drive to base (from → base), and serviceHour × the hours asked for.
+ * Each drive is priced on its own:
+ *   with our vehicle:      perDistance × its distance.
+ *   in the customer's car: driveHour × its drive time, rounded up.
  * Driver, over from → to → base (the drive back to our base counts):
  *   driving:               max(driverMinimum, driveHour × drive time), so up to 4 h costs 400.
  *   with our vehicle, add: perDistance × that distance.
@@ -169,8 +186,12 @@ export function priceRoute(
     } else {
       if (toBase.estimated) reasons.add("estimatedRoute");
       // The way back is assumed to mirror the way there.
-      est.tripDistance = toUnit(fromToTo.meters * 2 + toBase.meters, distanceUnit);
-      est.driveHours = (fromToTo.seconds * 2 + toBase.seconds) / 3600;
+      const drives = [
+        { part: "serviceDrive" as const, distance: toUnit(fromToTo.meters * 2, distanceUnit), hours: (fromToTo.seconds * 2) / 3600 },
+        { part: "toBase" as const, distance: toUnit(toBase.meters, distanceUnit), hours: toBase.seconds / 3600 },
+      ];
+      est.tripDistance = Math.round((drives[0].distance + drives[1].distance) * 10) / 10;
+      est.driveHours = drives[0].hours + drives[1].hours;
       const leg = (kind: TripLeg["kind"], l: Leg): TripLeg => ({
         kind,
         distance: toUnit(l.meters, distanceUnit),
@@ -180,14 +201,16 @@ export function priceRoute(
       if (est.driveHours > PRICING_RULES.maxDriveHours) {
         reasons.add("tooLong");
       } else if (rates) {
-        if (input.withVehicle) {
-          est.lines.push(line("distance", est.tripDistance, rates.perDistance));
-        } else {
-          est.billedHours = roundUpHours(est.driveHours);
-          est.lines.push(line("driveTime", est.billedHours, rates.driveHour));
+        for (const d of drives) {
+          est.lines.push(
+            input.withVehicle
+              ? line("distance", d.distance, rates.perDistance, d.part)
+              : line("driveTime", roundUpHours(d.hours), rates.driveHour, d.part),
+          );
         }
+        if (!input.withVehicle) est.billedHours = est.lines.reduce((sum, l) => sum + l.quantity, 0);
         // The time at the hospital is billed with or without our vehicle.
-        est.lines.push(line("serviceTime", est.serviceHours, rates.serviceHour));
+        est.lines.push(line("serviceTime", est.serviceHours, rates.serviceHour, "service"));
       }
     }
   } else {

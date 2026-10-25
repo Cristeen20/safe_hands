@@ -38,26 +38,32 @@ describe("roundUpHours", () => {
 });
 
 describe("hospital visit", () => {
-  it("with a vehicle, charges 25/km over the round trip, plus the service hours", () => {
-    const est = price({ requestedHours: 2 });
+  it("with a vehicle, charges 25/km for the service drive and the drive to base, plus the service hours", () => {
+    const est = price({ requestedHours: 2, toBase: leg(10, 25) });
     expect(est.outcome).toBe("auto");
-    expect(est.tripDistance).toBe(24);
+    expect(est.tripDistance).toBe(34);
     expect(est.lines).toEqual([
-      { kind: "distance", quantity: 24, rateMinor: 25_00, amountMinor: 600_00 },
-      { kind: "serviceTime", quantity: 2, rateMinor: 500_00, amountMinor: 1000_00 },
+      { kind: "distance", part: "serviceDrive", quantity: 24, rateMinor: 25_00, amountMinor: 600_00 },
+      { kind: "distance", part: "toBase", quantity: 10, rateMinor: 25_00, amountMinor: 250_00 },
+      { kind: "serviceTime", part: "service", quantity: 2, rateMinor: 500_00, amountMinor: 1000_00 },
     ]);
-    expect(est.amountMinor).toBe(600_00 + 2 * 500_00);
+    expect(est.amountMinor).toBe(1850_00);
   });
 
   it("prices long trips automatically: there's no distance limit", () => {
     expect(price({ requestedHours: 2, fromToTo: leg(40, 70) })).toMatchObject({ outcome: "auto", reasons: [] });
   });
 
-  it("without a vehicle, charges round-trip drive hours plus the chosen service hours", () => {
-    const est = price({ withVehicle: false, requestedHours: 2 });
-    // 35 min each way = 70 min → 1.5 h billed.
-    expect(est.billedHours).toBe(1.5);
-    expect(est.amountMinor).toBe(1.5 * 100_00 + 2 * 500_00);
+  it("without a vehicle, charges each drive's hours, rounded up on its own, plus the service hours", () => {
+    const est = price({ withVehicle: false, requestedHours: 2, toBase: leg(10, 25) });
+    // Service drive: 35 min each way = 70 min → 1.5 h. To base: 25 min → 0.5 h.
+    expect(est.lines).toEqual([
+      { kind: "driveTime", part: "serviceDrive", quantity: 1.5, rateMinor: 100_00, amountMinor: 150_00 },
+      { kind: "driveTime", part: "toBase", quantity: 0.5, rateMinor: 100_00, amountMinor: 50_00 },
+      { kind: "serviceTime", part: "service", quantity: 2, rateMinor: 500_00, amountMinor: 1000_00 },
+    ]);
+    expect(est.billedHours).toBe(2);
+    expect(est.amountMinor).toBe(1200_00);
     expect(est.outcome).toBe("auto");
   });
 
@@ -69,9 +75,6 @@ describe("hospital visit", () => {
       { kind: "back", distance: 12, driveHours: 35 / 60 },
       { kind: "pickupReturn", distance: 10, driveHours: 25 / 60 },
     ]);
-    expect(est.amountMinor).toBe(34 * 25_00 + 2 * 500_00);
-    // In the customer's car: 35 + 35 + 25 min = 95 min → 2 h billed.
-    expect(price({ withVehicle: false, requestedHours: 2, toBase: leg(10, 25) }).billedHours).toBe(2);
   });
 
   it("gives no price for more than 9 hours of driving, so an admin quotes it", () => {

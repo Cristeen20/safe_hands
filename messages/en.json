@@ -469,6 +469,11 @@
     "loading": "Working out the price…",
     "distance": "Distance",
     "driveTime": "Drive time",
+    "parts": {
+      "serviceDrive": "Service drive",
+      "toBase": "Service to base",
+      "service": "Service hours"
+    },
     "legs": {
       "outbound": "Pickup → destination",
       "back": "Destination → pickup",
