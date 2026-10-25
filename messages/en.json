@@ -466,6 +466,11 @@
     "locationDenied": "We couldn't get your location. Search for the address or move the map.",
     "outsideIndia": "We only help in India. Move the map to a place in India."
   },
+  "Duration": {
+    "day": "{count, plural, one {# day} other {# days}}",
+    "hour": "{count, plural, one {# hr} other {# hrs}}",
+    "minute": "{count, plural, one {# min} other {# mins}}"
+  },
   "Price": {
     "loading": "Working out the price…",
     "distance": "Distance",

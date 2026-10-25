@@ -6,6 +6,7 @@ import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { isRouteService } from "@/domain/booking";
 import { toMajor } from "@/domain/money";
 import { PRICE_PARTS, legPart, type PriceEstimate, type PriceLine, type TripLeg } from "@/domain/pricing";
+import { formatDuration } from "@/lib/duration";
 import { estimateDraft } from "@/server/estimates";
 import type { BookingDraft } from "./draft-context";
 import { MAPS_ENABLED } from "./maps-provider";
@@ -95,7 +96,8 @@ export function EstimateDetails({ estimate: e, forAdmin = false }: { estimate: P
   const money = useMoney();
   const distance = (value: number) =>
     format.number(value, { style: "unit", unit: e.distanceUnit, maximumFractionDigits: 1 });
-  const hours = (value: number) => format.number(value, { style: "unit", unit: "hour", maximumFractionDigits: 1 });
+  const td = useTranslations("Duration");
+  const hours = (value: number) => formatDuration(value, td);
 
   if (e.reasons.includes("noLocation")) {
     return <p className="text-[15px] text-muted">{forAdmin ? t("reasons.noLocation") : t("pending")}</p>;
@@ -105,7 +107,7 @@ export function EstimateDetails({ estimate: e, forAdmin = false }: { estimate: P
     <div key={leg.kind} className="contents">
       <dt className="text-muted">{t(`legs.${leg.kind}`)}</dt>
       <dd className="text-right font-medium">
-        {distance(leg.distance)} · {hours(Math.round(leg.driveHours * 10) / 10)}
+        {distance(leg.distance)} · {hours(leg.driveHours)}
       </dd>
     </div>
   );
@@ -147,7 +149,7 @@ export function EstimateDetails({ estimate: e, forAdmin = false }: { estimate: P
           <dt className="text-muted">{t("distance")}</dt>
           <dd className="text-right font-medium">{distance(e.tripDistance)}</dd>
           <dt className="text-muted">{t("driveTime")}</dt>
-          <dd className="text-right font-medium">{hours(Math.round(e.driveHours * 10) / 10)}</dd>
+          <dd className="text-right font-medium">{hours(e.driveHours)}</dd>
           {e.lines.map(lineRow)}
         </dl>
       )}
