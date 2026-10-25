@@ -147,7 +147,7 @@ const line = (kind: PriceLine["kind"], quantity: number, rateMinor: number, part
  * Driver, over from → to → base (the drive back to our base counts):
  *   driving:               max(driverMinimum, driveHour × drive time), so up to 4 h costs 400.
  *   with our vehicle, add: perDistance × that distance.
- * Either one, over maxDriveHours of driving: no price, an admin quotes it.
+ * Either one, over maxDriveHours of driving: priced the same, but an admin must approve it.
  * Companion: no rule yet, always an admin.
  */
 export function priceRoute(
@@ -198,9 +198,8 @@ export function priceRoute(
         driveHours: l.seconds / 3600,
       });
       est.legs = [leg("outbound", fromToTo), leg("back", fromToTo), leg("pickupReturn", toBase)];
-      if (est.driveHours > PRICING_RULES.maxDriveHours) {
-        reasons.add("tooLong");
-      } else if (rates) {
+      if (est.driveHours > PRICING_RULES.maxDriveHours) reasons.add("tooLong");
+      if (rates) {
         for (const d of drives) {
           est.lines.push(
             input.withVehicle
@@ -227,9 +226,8 @@ export function priceRoute(
         { kind: "return", distance: toUnit(toBase.meters, distanceUnit), driveHours: toBase.seconds / 3600 },
       ];
       est.billedHours = roundUpHours(est.driveHours);
-      if (est.driveHours > PRICING_RULES.maxDriveHours) {
-        reasons.add("tooLong");
-      } else if (rates) {
+      if (est.driveHours > PRICING_RULES.maxDriveHours) reasons.add("tooLong");
+      if (rates) {
         const driving = line("driveTime", est.billedHours, rates.driveHour);
         est.lines.push(
           driving.amountMinor > rates.driverMinimum ? driving : line("minimum", 1, rates.driverMinimum),

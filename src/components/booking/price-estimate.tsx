@@ -165,7 +165,9 @@ export function EstimateDetails({ estimate: e, forAdmin = false }: { estimate: P
             ))}
           </ul>
         ) : (
-          <p className="rounded-field bg-accent-soft px-3 py-2 text-sm font-semibold">{t("pending")}</p>
+          <p className="rounded-field bg-accent-soft px-3 py-2 text-sm font-semibold">
+            {e.amountMinor !== null ? t("approvalNeeded") : t("pending")}
+          </p>
         ))}
     </div>
   );

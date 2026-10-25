@@ -77,9 +77,13 @@ describe("hospital visit", () => {
     ]);
   });
 
-  it("gives no price for more than 9 hours of driving, so an admin quotes it", () => {
+  it("prices more than 9 hours of driving in full, but needs an admin's approval", () => {
     const long = { requestedHours: 2, fromToTo: leg(200, 4 * 60), toBase: leg(30, 61) };
-    expect(price(long)).toMatchObject({ outcome: "pendingAdmin", reasons: ["tooLong"], amountMinor: null, lines: [] });
+    expect(price(long)).toMatchObject({
+      outcome: "pendingAdmin",
+      reasons: ["tooLong"],
+      amountMinor: 400 * 25_00 + 30 * 25_00 + 2 * 500_00,
+    });
     expect(price({ ...long, toBase: leg(30, 60) }).outcome).toBe("auto");
   });
 
@@ -146,9 +150,10 @@ describe("driver", () => {
     );
   });
 
-  it("gives no price for more than 9 hours of driving, so an admin quotes it", () => {
-    const est = driver({ withVehicle: true, fromToTo: leg(300, 5 * 60), toBase: leg(250, 4 * 60 + 1) });
-    expect(est).toMatchObject({ outcome: "pendingAdmin", reasons: ["tooLong"], amountMinor: null, lines: [] });
+  it("prices more than 9 hours of driving in full, but needs an admin's approval", () => {
+    const est = driver({ fromToTo: leg(300, 5 * 60), toBase: leg(250, 4 * 60 + 1) });
+    // 9 h 1 min → 9.5 h billed.
+    expect(est).toMatchObject({ outcome: "pendingAdmin", reasons: ["tooLong"], amountMinor: 950_00 });
     expect(driver({ fromToTo: leg(300, 5 * 60), toBase: leg(250, 4 * 60) }).amountMinor).toBe(900_00);
   });
 

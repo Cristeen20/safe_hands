@@ -42,7 +42,7 @@ export const PRICING: Record<Region, RegionPricing> = {
 export const PRICING_RULES = {
   /** Billed hours are rounded up to this step. */
   billedHourStep: 0.5,
-  /** A driver or hospital-visit trip driving longer than this (base leg included) gets no price: an admin quotes it. */
+  /** A driver or hospital-visit trip driving longer than this (base leg included) needs an admin's approval. */
   maxDriveHours: 9,
   /** Pickup and destination closer than this are rejected as the same place. */
   minTripMeters: 200,

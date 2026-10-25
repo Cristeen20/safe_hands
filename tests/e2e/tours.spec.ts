@@ -15,7 +15,7 @@ test("en-IN: pre-booking a package sends a request and adds to its count", async
   await signInWithEmailOnPage(page, `e2e-tour-${Date.now()}@example.in`);
   await expect(page).toHaveURL(/\/en-IN\/book\/review$/);
   await expect(page.getByText("Guided tour · Package · 3 days · 3 people")).toBeVisible();
-  await page.getByRole("button", { name: "Submit request" }).click();
+  await page.getByRole("button", { name: "Send for admin approval" }).click();
   await expect(page).toHaveURL(/\/en-IN\/activity$/);
   await expect(page.getByText("Munnar + Vagamon").first()).toBeVisible();
 

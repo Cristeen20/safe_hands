@@ -202,7 +202,8 @@
     "when": "When",
     "forWhom": "For whom",
     "details": "Details",
-    "submit": "Submit request",
+    "submitForApproval": "Send for admin approval",
+    "approvalNote": "Admin approval required. You pay only after our team approves the price and you accept it.",
     "submitting": "Submitting…",
     "incomplete": "Some details are missing. Go back and finish your request.",
     "leadTime": "That time is now less than 48 hours away. Pick a later time.",
@@ -489,6 +490,7 @@
     "total": "Total",
     "suggested": "Estimate",
     "pending": "Our team will review this and email you a quote.",
+    "approvalNeeded": "Admin approval required. Our team will check this price and email you a quote to accept.",
     "vehicleTooFar": "We can't send a vehicle more than {max} from our base. Choose \"No vehicle\" instead.",
     "routeMap": "Map of the route",
     "reasons": {

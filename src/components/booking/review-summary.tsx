@@ -237,10 +237,12 @@ function ReviewBody({ needsEmail }: { needsEmail: boolean }) {
             ? t("submitting")
             : payable
               ? t("submitAndPay", { amount: money(payable.minor, payable.currency) })
-              : t("submit")}
+              : t("submitForApproval")}
         </button>
       </div>
-      {payable && <p className="text-center text-[13px] text-muted sm:text-right">{t("secureNote")}</p>}
+      <p className="text-center text-[13px] text-muted sm:text-right">
+        {payable ? t("secureNote") : t("approvalNote")}
+      </p>
     </div>
   );
 }

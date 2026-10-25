@@ -46,10 +46,10 @@ test("a guest builds a request, signs in, submits it, and an admin sees it", asy
   await expect(page.getByText("2 people accompanying · Needs a bystander", { exact: false })).toBeVisible();
 
   // Phone-only customers must give an email for the quote (D11).
-  await page.getByRole("button", { name: "Submit request" }).click();
+  await page.getByRole("button", { name: "Send for admin approval" }).click();
   await expect(page.getByText("Enter a valid email address so we can send your quote.")).toBeVisible();
   await page.getByLabel("Where should we email your quote?").fill(`e2e-${Date.now()}@example.co.uk`);
-  await page.getByRole("button", { name: "Submit request" }).click();
+  await page.getByRole("button", { name: "Send for admin approval" }).click();
   await expect(page).toHaveURL(/\/en-GB\/activity$/);
   await expect(page.getByText(destination)).toBeVisible();
   await expect(page.getByText("Awaiting approval")).toBeVisible();
@@ -102,7 +102,7 @@ test("the server rejects a request less than 48 hours ahead (D17)", async ({ pag
   });
   await page.reload();
   await page.getByLabel("Where should we email your quote?").fill(`e2e-${Date.now()}@example.co.uk`);
-  await page.getByRole("button", { name: "Submit request" }).click();
+  await page.getByRole("button", { name: "Send for admin approval" }).click();
   await expect(page.getByText("less than 48 hours away")).toBeVisible();
 });
 
