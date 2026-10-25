@@ -104,6 +104,14 @@ export function EstimateDetails({ estimate: e, forAdmin = false }: { estimate: P
   return (
     <div className="flex flex-col gap-2 text-[15px]">
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+        {e.legs?.map((leg) => (
+          <div key={leg.kind} className="contents">
+            <dt className="text-muted">{t(`legs.${leg.kind}`)}</dt>
+            <dd className="text-right font-medium">
+              {distance(leg.distance)} · {hours(Math.round(leg.driveHours * 10) / 10)}
+            </dd>
+          </div>
+        ))}
         <dt className="text-muted">{t("distance")}</dt>
         <dd className="text-right font-medium">{distance(e.tripDistance)}</dd>
         <dt className="text-muted">{t("driveTime")}</dt>

@@ -14,6 +14,7 @@ export type Leg = { meters: number; seconds: number; estimated: boolean };
  * Why a request needs an admin instead of an automatic quote:
  * - noRates: the market has no rates yet.
  * - noBase: a driver booking, but the market has no driver base for the return leg.
+ * - tooLong: a driver trip drives longer than PRICING_RULES.driverMaxDriveHours.
  * - estimatedRoute: routing failed and the straight-line fallback was used.
  * - multiDay: multi-day bookings have no rule yet.
  * - companion: companion pricing isn't defined.
@@ -24,6 +25,7 @@ export type Leg = { meters: number; seconds: number; estimated: boolean };
 export type PendingReason =
   | "noRates"
   | "noBase"
+  | "tooLong"
   | "estimatedRoute"
   | "multiDay"
   | "companion"
@@ -39,6 +41,14 @@ export type PriceLine = {
   amountMinor: number;
 };
 
+/** One part of a driver's trip, shown on its own. */
+export type TripLeg = {
+  kind: "outbound" | "return";
+  /** In the region's unit. */
+  distance: number;
+  driveHours: number;
+};
+
 export type PriceEstimate = {
   /** auto: quoted and payable now. pendingAdmin: an admin quotes it. */
   outcome: "auto" | "pendingAdmin";
@@ -49,6 +59,8 @@ export type PriceEstimate = {
   tripDistance: number;
   /** Driving time over that same trip, before rounding. */
   driveHours: number;
+  /** Drivers: pickup → drop-off and drop-off → base. Missing on older estimates and other services. */
+  legs?: TripLeg[];
   /** Hours of driving billed (hospital visit in the customer's car, driver), rounded up. Null when not hourly. */
   billedHours: number | null;
   serviceHours: number | null;
@@ -114,6 +126,7 @@ const line = (kind: PriceLine["kind"], quantity: number, rateMinor: number): Pri
  * Driver, over from → to → base (the drive back to our base counts):
  *   driving:               max(driverMinimum, driveHour × drive time), so up to 4 h costs 400.
  *   with our vehicle, add: perDistance × that distance.
+ *   over driverMaxDriveHours of driving: no price, an admin quotes it.
  * Companion: no rule yet, always an admin.
  */
 export function priceRoute(
@@ -165,8 +178,14 @@ export function priceRoute(
       if (toToBase.estimated) reasons.add("estimatedRoute");
       est.tripDistance = toUnit(fromToTo.meters + toToBase.meters, distanceUnit);
       est.driveHours = (fromToTo.seconds + toToBase.seconds) / 3600;
+      est.legs = [
+        { kind: "outbound", distance: toUnit(fromToTo.meters, distanceUnit), driveHours: fromToTo.seconds / 3600 },
+        { kind: "return", distance: toUnit(toToBase.meters, distanceUnit), driveHours: toToBase.seconds / 3600 },
+      ];
       est.billedHours = roundUpHours(est.driveHours);
-      if (rates) {
+      if (est.driveHours > PRICING_RULES.driverMaxDriveHours) {
+        reasons.add("tooLong");
+      } else if (rates) {
         const driving = line("driveTime", est.billedHours, rates.driveHour);
         est.lines.push(
           driving.amountMinor > rates.driverMinimum ? driving : line("minimum", 1, rates.driverMinimum),

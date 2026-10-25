@@ -38,6 +38,8 @@ export const PRICING: Record<Region, RegionPricing> = {
 export const PRICING_RULES = {
   /** Billed hours are rounded up to this step. */
   billedHourStep: 0.5,
+  /** A driver trip (from → to → base) driving longer than this gets no price: an admin quotes it. */
+  driverMaxDriveHours: 9,
   /** Pickup and destination closer than this are rejected as the same place. */
   minTripMeters: 200,
 };

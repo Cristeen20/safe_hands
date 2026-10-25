@@ -83,6 +83,10 @@ describe("driver", () => {
     const est = driver({ fromToTo: leg(100, 150), toToBase: leg(80, 120) });
     expect(est.tripDistance).toBe(180);
     expect(est.driveHours).toBe(4.5);
+    expect(est.legs).toEqual([
+      { kind: "outbound", distance: 100, driveHours: 2.5 },
+      { kind: "return", distance: 80, driveHours: 2 },
+    ]);
     expect(est.billedHours).toBe(4.5);
   });
 
@@ -113,6 +117,12 @@ describe("driver", () => {
     expect(driver({ withVehicle: true, fromToTo: leg(10, 20), toToBase: leg(6, 15) }).amountMinor).toBe(
       400_00 + 16 * 25_00,
     );
+  });
+
+  it("gives no price for more than 9 hours of driving, so an admin quotes it", () => {
+    const est = driver({ withVehicle: true, fromToTo: leg(300, 5 * 60), toToBase: leg(250, 4 * 60 + 1) });
+    expect(est).toMatchObject({ outcome: "pendingAdmin", reasons: ["tooLong"], amountMinor: null, lines: [] });
+    expect(driver({ fromToTo: leg(300, 5 * 60), toToBase: leg(250, 4 * 60) }).amountMinor).toBe(900_00);
   });
 
   it("goes to an admin when the market has no driver base", () => {
