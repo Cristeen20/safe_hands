@@ -13,8 +13,8 @@ export type Leg = { meters: number; seconds: number; estimated: boolean };
 /**
  * Why a request needs an admin instead of an automatic quote:
  * - noRates: the market has no rates yet.
- * - noBase: a driver booking, but the market has no driver base for the return leg.
- * - tooLong: a driver trip drives longer than PRICING_RULES.driverMaxDriveHours.
+ * - noBase: a driver or hospital visit, but the market has no base for the return leg.
+ * - tooLong: the trip drives longer than PRICING_RULES.maxDriveHours.
  * - estimatedRoute: routing failed and the straight-line fallback was used.
  * - multiDay: multi-day bookings have no rule yet.
  * - companion: companion pricing isn't defined.
@@ -41,9 +41,13 @@ export type PriceLine = {
   amountMinor: number;
 };
 
-/** One part of a driver's trip, shown on its own. */
+/**
+ * One part of a trip, shown on its own: pickup → destination (outbound),
+ * destination → pickup (back), destination → base (return, drivers) and
+ * pickup → base (pickupReturn, hospital visits).
+ */
 export type TripLeg = {
-  kind: "outbound" | "return";
+  kind: "outbound" | "back" | "return" | "pickupReturn";
   /** In the region's unit. */
   distance: number;
   driveHours: number;
@@ -55,11 +59,11 @@ export type PriceEstimate = {
   reasons: PendingReason[];
   currency: Currency;
   distanceUnit: DistanceUnit;
-  /** Distance driven for the service (round trip for hospital visits, from → to → base for drivers), in the region's unit. */
+  /** Distance driven, in the region's unit: from → to → from → base for hospital visits, from → to → base for drivers. */
   tripDistance: number;
   /** Driving time over that same trip, before rounding. */
   driveHours: number;
-  /** Drivers: pickup → drop-off and drop-off → base. Missing on older estimates and other services. */
+  /** Each part of that trip. Missing on older estimates and for companions. */
   legs?: TripLeg[];
   /** Hours of driving billed (hospital visit in the customer's car, driver), rounded up. Null when not hourly. */
   billedHours: number | null;
@@ -78,8 +82,8 @@ export type PricingInput = {
   multiDay: boolean;
   /** Pickup → destination, one way. */
   fromToTo: Leg;
-  /** Destination → the driver base (drivers only). Null when the market has no base or for other services. */
-  toToBase: Leg | null;
+  /** The leg back to our base: from the destination (drivers) or the pickup (hospital visits). Null without a base. */
+  toBase: Leg | null;
 };
 
 export function haversineMeters(a: LatLng, b: LatLng): number {
@@ -120,13 +124,13 @@ const line = (kind: PriceLine["kind"], quantity: number, rateMinor: number): Pri
 /**
  * Price a hospital visit, driver or companion booking.
  *
- * Hospital visit (from → to → from), plus serviceHour × the hours asked for:
- *   with our vehicle:      perDistance × round trip.
- *   in the customer's car: driveHour × round-trip drive time.
+ * Hospital visit, over from → to → from → base, plus serviceHour × the hours asked for:
+ *   with our vehicle:      perDistance × that distance.
+ *   in the customer's car: driveHour × that drive time.
  * Driver, over from → to → base (the drive back to our base counts):
  *   driving:               max(driverMinimum, driveHour × drive time), so up to 4 h costs 400.
  *   with our vehicle, add: perDistance × that distance.
- *   over driverMaxDriveHours of driving: no price, an admin quotes it.
+ * Either one, over maxDriveHours of driving: no price, an admin quotes it.
  * Companion: no rule yet, always an admin.
  */
 export function priceRoute(
@@ -158,32 +162,49 @@ export function priceRoute(
   if (input.serviceType === "companion") {
     reasons.add("companion");
   } else if (input.serviceType === "hospital_visit") {
-    est.tripDistance = toUnit(fromToTo.meters * 2, distanceUnit);
-    est.driveHours = (fromToTo.seconds * 2) / 3600;
     est.serviceHours = input.requestedHours;
-    if (input.withVehicle) {
-      if (rates) est.lines.push(line("distance", est.tripDistance, rates.perDistance));
-    } else {
-      est.billedHours = roundUpHours(est.driveHours);
-      if (rates) est.lines.push(line("driveTime", est.billedHours, rates.driveHour));
-    }
-    // The time at the hospital is billed with or without our vehicle.
-    if (rates) est.lines.push(line("serviceTime", est.serviceHours, rates.serviceHour));
-  } else {
-    if (input.multiDay) reasons.add("multiDay");
-    const { toToBase } = input;
-    if (!toToBase) {
+    const { toBase } = input;
+    if (!toBase) {
       reasons.add("noBase");
     } else {
-      if (toToBase.estimated) reasons.add("estimatedRoute");
-      est.tripDistance = toUnit(fromToTo.meters + toToBase.meters, distanceUnit);
-      est.driveHours = (fromToTo.seconds + toToBase.seconds) / 3600;
+      if (toBase.estimated) reasons.add("estimatedRoute");
+      // The way back is assumed to mirror the way there.
+      est.tripDistance = toUnit(fromToTo.meters * 2 + toBase.meters, distanceUnit);
+      est.driveHours = (fromToTo.seconds * 2 + toBase.seconds) / 3600;
+      const leg = (kind: TripLeg["kind"], l: Leg): TripLeg => ({
+        kind,
+        distance: toUnit(l.meters, distanceUnit),
+        driveHours: l.seconds / 3600,
+      });
+      est.legs = [leg("outbound", fromToTo), leg("back", fromToTo), leg("pickupReturn", toBase)];
+      if (est.driveHours > PRICING_RULES.maxDriveHours) {
+        reasons.add("tooLong");
+      } else if (rates) {
+        if (input.withVehicle) {
+          est.lines.push(line("distance", est.tripDistance, rates.perDistance));
+        } else {
+          est.billedHours = roundUpHours(est.driveHours);
+          est.lines.push(line("driveTime", est.billedHours, rates.driveHour));
+        }
+        // The time at the hospital is billed with or without our vehicle.
+        est.lines.push(line("serviceTime", est.serviceHours, rates.serviceHour));
+      }
+    }
+  } else {
+    if (input.multiDay) reasons.add("multiDay");
+    const { toBase } = input;
+    if (!toBase) {
+      reasons.add("noBase");
+    } else {
+      if (toBase.estimated) reasons.add("estimatedRoute");
+      est.tripDistance = toUnit(fromToTo.meters + toBase.meters, distanceUnit);
+      est.driveHours = (fromToTo.seconds + toBase.seconds) / 3600;
       est.legs = [
         { kind: "outbound", distance: toUnit(fromToTo.meters, distanceUnit), driveHours: fromToTo.seconds / 3600 },
-        { kind: "return", distance: toUnit(toToBase.meters, distanceUnit), driveHours: toToBase.seconds / 3600 },
+        { kind: "return", distance: toUnit(toBase.meters, distanceUnit), driveHours: toBase.seconds / 3600 },
       ];
       est.billedHours = roundUpHours(est.driveHours);
-      if (est.driveHours > PRICING_RULES.driverMaxDriveHours) {
+      if (est.driveHours > PRICING_RULES.maxDriveHours) {
         reasons.add("tooLong");
       } else if (rates) {
         const driving = line("driveTime", est.billedHours, rates.driveHour);

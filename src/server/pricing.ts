@@ -37,10 +37,12 @@ export async function estimateBooking(region: Region, v: Pricable): Promise<Esti
   }
   if (isTooClose(from, to)) return { ok: false, error: "tooClose" };
 
-  const base = v.serviceType === "driver" ? pricing.driverBase : null;
-  const [fromToTo, toToBase] = await Promise.all([
+  // Drivers head back to our base from the drop-off; hospital visits from the pickup, once the customer is home.
+  const baseFrom = v.serviceType === "driver" ? to : v.serviceType === "hospital_visit" ? from : null;
+  const base = baseFrom ? pricing.base : null;
+  const [fromToTo, toBase] = await Promise.all([
     routeLeg(from, to, v.scheduledStart),
-    base ? routeLeg(to, base, v.scheduledStart) : Promise.resolve(null),
+    baseFrom && base ? routeLeg(baseFrom, base, v.scheduledStart) : Promise.resolve(null),
   ]);
   const estimate = priceRoute(
     {
@@ -49,7 +51,7 @@ export async function estimateBooking(region: Region, v: Pricable): Promise<Esti
       requestedHours: v.estimatedHours ?? 0,
       multiDay: v.days !== null,
       fromToTo,
-      toToBase,
+      toBase,
     },
     pricing,
     currency,

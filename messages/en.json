@@ -470,8 +470,10 @@
     "distance": "Distance",
     "driveTime": "Drive time",
     "legs": {
-      "outbound": "Pickup → drop-off",
-      "return": "Drop-off → our base"
+      "outbound": "Pickup → destination",
+      "back": "Destination → pickup",
+      "return": "Destination → our base",
+      "pickupReturn": "Pickup → our base"
     },
     "lines": {
       "distance": "Vehicle · {quantity} at {rate}",
@@ -486,7 +488,7 @@
     "routeMap": "Map of the route",
     "reasons": {
       "noBase": "No base location is set for this market",
-      "tooLong": "The trip drives for more than 9 hours, including the return to our base",
+      "tooLong": "The trip drives for more than 9 hours, including the drive back to our base",
       "noRates": "No rates are set for this market",
       "estimatedRoute": "Routing failed: distances are straight-line estimates",
       "multiDay": "Multi-day booking",
@@ -539,7 +541,7 @@
         "Collecting medicines",
         "Updates for the family by email"
       ],
-      "pricing": "The price depends on the distance and how long the visit takes. In our vehicle we charge by distance for the round trip; in your own car, by the time spent driving. Both add the hours of the visit."
+      "pricing": "The price depends on the distance and how long the visit takes. In our vehicle we charge by distance for the round trip and our drive back to base; in your own car, by the time spent driving. Both add the hours of the visit. Our team quotes trips with more than 9 hours of driving."
     },
     "driver": {
       "cta": "Book a driver",
@@ -552,7 +554,7 @@
         "A child seat on request",
         "The same driver for multi-day trips"
       ],
-      "pricing": "The price is set by the driving time, including the driver's trip back to our base, with a minimum charge that covers up to 4 hours. In our vehicle, there's also a charge per distance. Our team quotes multi-day trips."
+      "pricing": "The price is set by the driving time, including the driver's trip back to our base, with a minimum charge that covers up to 4 hours. In our vehicle, there's also a charge per distance. Our team quotes multi-day trips and trips with more than 9 hours of driving."
     },
     "companion": {
       "cta": "Book a companion",
