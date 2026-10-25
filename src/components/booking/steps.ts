@@ -24,12 +24,12 @@ export function stepsFor(service: ServiceType): BookStep[] {
     : ["details", "when", "review", "payment"];
 }
 
-/** Who it's for and where, with both map points when maps are on. */
+/** Who it's for and where, with a map point for every place when maps are on (so it's checked to be in India). */
 export function detailsComplete(d: BookingDraft): boolean {
   if (d.recipient.kind === "other" && !toE164(d.recipient.phone, SERVICE_COUNTRY)) return false;
   if (!recipientSchema.safeParse(d.recipient).success) return false;
   if (!d.serviceAddress.trim()) return false;
-  if (MAPS_ENABLED && isRouteService(d.serviceType) && !d.servicePoint) return false;
+  if (MAPS_ENABLED && !d.servicePoint) return false;
   if (isRouteService(d.serviceType)) {
     if (!d.startAddress.trim()) return false;
     if (MAPS_ENABLED && !d.startPoint) return false;

@@ -13,6 +13,7 @@ export type Leg = { meters: number; seconds: number; estimated: boolean };
 /**
  * Why a request needs an admin instead of an automatic quote:
  * - noRates: the market has no rates yet.
+ * - noBase: a driver booking, but the market has no driver base for the return leg.
  * - estimatedRoute: routing failed and the straight-line fallback was used.
  * - multiDay: multi-day bookings have no rule yet.
  * - companion: companion pricing isn't defined.
@@ -22,6 +23,7 @@ export type Leg = { meters: number; seconds: number; estimated: boolean };
  */
 export type PendingReason =
   | "noRates"
+  | "noBase"
   | "estimatedRoute"
   | "multiDay"
   | "companion"
@@ -43,11 +45,11 @@ export type PriceEstimate = {
   reasons: PendingReason[];
   currency: Currency;
   distanceUnit: DistanceUnit;
-  /** Distance driven for the service (round trip for hospital visits), in the region's unit. */
+  /** Distance driven for the service (round trip for hospital visits, from → to → base for drivers), in the region's unit. */
   tripDistance: number;
-  /** Driving time (both ways for hospital visits), before rounding. */
+  /** Driving time over that same trip, before rounding. */
   driveHours: number;
-  /** Hours of driving billed (hospital visit in the customer's car), rounded up. Null when not hourly. */
+  /** Hours of driving billed (hospital visit in the customer's car, driver), rounded up. Null when not hourly. */
   billedHours: number | null;
   serviceHours: number | null;
   /** The quote, or a suggestion for the admin when pending. Null when there is no rule. */
@@ -64,6 +66,8 @@ export type PricingInput = {
   multiDay: boolean;
   /** Pickup → destination, one way. */
   fromToTo: Leg;
+  /** Destination → the driver base (drivers only). Null when the market has no base or for other services. */
+  toToBase: Leg | null;
 };
 
 export function haversineMeters(a: LatLng, b: LatLng): number {
@@ -107,9 +111,9 @@ const line = (kind: PriceLine["kind"], quantity: number, rateMinor: number): Pri
  * Hospital visit (from → to → from), plus serviceHour × the hours asked for:
  *   with our vehicle:      perDistance × round trip.
  *   in the customer's car: driveHour × round-trip drive time.
- * Driver (no hourly charge, no return trip):
- *   with our vehicle:      max(driverMinimum, perDistance × one-way distance).
- *   in the customer's car: driverMinimum.
+ * Driver, over from → to → base (the drive back to our base counts):
+ *   driving:               max(driverMinimum, driveHour × drive time), so up to 4 h costs 400.
+ *   with our vehicle, add: perDistance × that distance.
  * Companion: no rule yet, always an admin.
  */
 export function priceRoute(
@@ -154,13 +158,21 @@ export function priceRoute(
     if (rates) est.lines.push(line("serviceTime", est.serviceHours, rates.serviceHour));
   } else {
     if (input.multiDay) reasons.add("multiDay");
-    if (rates) {
-      const distance = line("distance", est.tripDistance, rates.perDistance);
-      est.lines.push(
-        input.withVehicle && distance.amountMinor >= rates.driverMinimum
-          ? distance
-          : line("minimum", 1, rates.driverMinimum),
-      );
+    const { toToBase } = input;
+    if (!toToBase) {
+      reasons.add("noBase");
+    } else {
+      if (toToBase.estimated) reasons.add("estimatedRoute");
+      est.tripDistance = toUnit(fromToTo.meters + toToBase.meters, distanceUnit);
+      est.driveHours = (fromToTo.seconds + toToBase.seconds) / 3600;
+      est.billedHours = roundUpHours(est.driveHours);
+      if (rates) {
+        const driving = line("driveTime", est.billedHours, rates.driveHour);
+        est.lines.push(
+          driving.amountMinor > rates.driverMinimum ? driving : line("minimum", 1, rates.driverMinimum),
+        );
+        if (input.withVehicle) est.lines.push(line("distance", est.tripDistance, rates.perDistance));
+      }
     }
   }
 

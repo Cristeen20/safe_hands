@@ -2,7 +2,7 @@ import "server-only";
 import { PRICING } from "@/config/pricing";
 import { isOurVehicle, isRouteService, type BookingValues, type GeoPoint } from "@/domain/booking";
 import { isTooClose, priceRoute, type PriceEstimate } from "@/domain/pricing";
-import { REGION_CONFIG, type Region } from "@/lib/region";
+import { REGION_CONFIG, inServiceBounds, type Region } from "@/lib/region";
 import { mapsConfigured, routeLeg, serviceArea } from "./maps";
 
 export type EstimateResult =
@@ -21,6 +21,7 @@ type Pricable = Pick<
  */
 export async function estimateBooking(region: Region, v: Pricable): Promise<EstimateResult> {
   const points = [v.startPoint, v.servicePoint].filter((p): p is GeoPoint => p !== null);
+  if (!points.every(inServiceBounds)) return { ok: false, error: "outsideArea" };
   const areaChecks = mapsConfigured() ? await Promise.all(points.map((p) => serviceArea(p))) : [];
   if (areaChecks.includes("outside")) return { ok: false, error: "outsideArea" };
 
@@ -36,7 +37,11 @@ export async function estimateBooking(region: Region, v: Pricable): Promise<Esti
   }
   if (isTooClose(from, to)) return { ok: false, error: "tooClose" };
 
-  const fromToTo = await routeLeg(from, to, v.scheduledStart);
+  const base = v.serviceType === "driver" ? pricing.driverBase : null;
+  const [fromToTo, toToBase] = await Promise.all([
+    routeLeg(from, to, v.scheduledStart),
+    base ? routeLeg(to, base, v.scheduledStart) : Promise.resolve(null),
+  ]);
   const estimate = priceRoute(
     {
       serviceType: v.serviceType,
@@ -44,6 +49,7 @@ export async function estimateBooking(region: Region, v: Pricable): Promise<Esti
       requestedHours: v.estimatedHours ?? 0,
       multiDay: v.days !== null,
       fromToTo,
+      toToBase,
     },
     pricing,
     currency,

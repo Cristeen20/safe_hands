@@ -547,7 +547,7 @@
         "A child seat on request",
         "The same driver for multi-day trips"
       ],
-      "pricing": "In our vehicle, the price is set by the one-way distance, with a minimum charge. If we drive your car, it's a flat fee. Our team quotes multi-day trips."
+      "pricing": "The price is set by the driving time, including the driver's trip back to our base, with a minimum charge that covers up to 4 hours. In our vehicle, there's also a charge per distance. Our team quotes multi-day trips."
     },
     "companion": {
       "cta": "Book a companion",

@@ -88,8 +88,9 @@ export async function submitBookingRequest(
   }
   const now = new Date();
   if (!meetsMinLeadTime(values.scheduledStart, now)) return { ok: false, error: "leadTime" };
-  // With maps on, the picker always sends coordinates for route services.
-  if (mapsConfigured() && isRouteService(values.serviceType) && (!values.startPoint || !values.servicePoint)) {
+  // With maps on, every place is a pin checked to be in India (D30). Tours run at fixed places in India.
+  const needsPins = mapsConfigured() && values.serviceType !== "tour";
+  if (needsPins && (!values.servicePoint || (isRouteService(values.serviceType) && !values.startPoint))) {
     return { ok: false, error: "invalid" };
   }
 

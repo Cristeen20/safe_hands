@@ -50,7 +50,7 @@ export function isRouteService(s: ServiceType): s is "hospital_visit" | "driver"
   return s === "hospital_visit" || s === "driver" || s === "companion";
 }
 
-/** Services where the customer chooses how many hours they need (not drivers: they're priced by distance). */
+/** Services where the customer chooses how many hours they need (not drivers: they're priced by drive time). */
 export function hasHours(s: ServiceType): boolean {
   return s === "hospital_visit" || s === "companion" || s === "camera";
 }
