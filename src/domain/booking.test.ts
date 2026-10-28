@@ -4,6 +4,7 @@ import {
   UnknownTourError,
   assertMinLeadTime,
   bookableDays,
+  bookingReference,
   bookingRequestSchema,
   bookingValues,
   canTransition,
@@ -76,14 +77,11 @@ describe("48-hour minimum notice (D17)", () => {
     expect(firstBookableDay(now, "Asia/Kolkata")).toBe("2026-10-16");
   });
 
-  it("offers five consecutive days", () => {
-    expect(bookableDays(now, "America/New_York")).toEqual([
-      "2026-10-16",
-      "2026-10-17",
-      "2026-10-18",
-      "2026-10-19",
-      "2026-10-20",
-    ]);
+  it("offers 60 consecutive days", () => {
+    const days = bookableDays(now, "America/New_York");
+    expect(days).toHaveLength(60);
+    expect(days.slice(0, 3)).toEqual(["2026-10-16", "2026-10-17", "2026-10-18"]);
+    expect(days.at(-1)).toBe("2026-12-14");
   });
 });
 
@@ -286,5 +284,19 @@ describe("bookingValues", () => {
     };
     expect(bookingRequestSchema.safeParse({ ...request, timeZone: "Asia/Kolkata" }).success).toBe(true);
     expect(bookingRequestSchema.safeParse({ ...request, timeZone: "America/New_York" }).success).toBe(false);
+  });
+});
+
+describe("bookingReference", () => {
+  it("combines the service, the local start date and the id", () => {
+    expect(
+      bookingReference({
+        id: "3f9a1c2e-0000-4000-8000-000000000000",
+        serviceType: "hospital_visit",
+        // 22 Oct 2026 21:00 UTC is already 23 Oct in India.
+        scheduledStart: at("2026-10-22T21:00:00Z"),
+        timeZone: "Asia/Kolkata",
+      }),
+    ).toBe("HV-20261023-3F9A1C");
   });
 });

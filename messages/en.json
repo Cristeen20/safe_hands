@@ -7,7 +7,9 @@
     "signUp": "Sign up",
     "signOut": "Sign out",
     "loading": "Loading…",
-    "edit": "Edit"
+    "edit": "Edit",
+    "change": "Change",
+    "copied": "Copied"
   },
   "ServiceType": {
     "hospital_visit": "Hospital visit",
@@ -41,13 +43,18 @@
     "completed": "Completed"
   },
   "Home": {
-    "heroTitle": "You don't have to go alone.",
-    "heroBody": "A kind, checked person to take you to the hospital, drive you, or look in on your home. For you, or for someone you love.",
-    "heroNote": "",
-    "heroCta": "Find the right help",
-    "promise": "We stay with you the whole time, and make sure you get home safely.",
-    "promiseNote": "Every helper is identity-checked",
-    "whatNeed": "How can we help?",
+    "heroTitle": "Your family",
+    "heroTitleAccent": "in safe hands",
+    "heroBody": "Trusted, identity-checked help for the people you love: at hospital visits, on the road and at home.",
+    "heroCta": "View our services",
+    "heroPhotoAlt": "A helper sitting with an older woman, both smiling",
+    "trustLabel": "Why families trust us",
+    "trustVerified": "Verified staff",
+    "trustSafe": "Safe and caring",
+    "trustAdvance": "Booked in advance",
+    "trustPayment": "Secure payment",
+    "whatNeed": "Our services",
+    "whatNeedSub": "Choose the service you need and book in minutes.",
     "hospitalTitle": "Hospital visit",
     "hospitalBody": "We take you there, stay by your side, and bring you home.",
     "hospitalCta": "Book a hospital visit",
@@ -56,7 +63,7 @@
     "driverCta": "Book a driver",
     "companionTitle": "Companion",
     "companionBody": "A friendly face at the bank, an office or the shops.",
-    "companionCta": "Ask for a companion",
+    "companionCta": "Book a companion",
     "propertyTitle": "Property check",
     "propertyBody": "We look in on your home while you're away.",
     "propertyCta": "Request a home visit",
@@ -73,23 +80,13 @@
   },
   "Schedule": {
     "addressPlaceholder": "Street, area and PIN code",
-    "when": "When",
-    "whenUnset": "Pick a day and time",
-    "forWhom": "For whom",
     "forMe": "For me",
-    "describeTitle": "Describe the service",
-    "hours": "Hours needed",
     "hoursValue": "{count, plural, one {# hr} other {# hrs}}",
     "fewerHours": "Fewer hours",
     "moreHours": "More hours",
     "counter": "{count} / 500",
-    "whereTitle": "Where",
-    "summaryTitle": "Your request",
-    "service": "Service",
-    "incomplete": "Add the locations (pick them from the list or the map), a day and time, and — if it's for someone else — their name and phone.",
     "quoteNote": "No payment now. You'll get a quote by email and pay only if you accept it.",
     "regionNote": "",
-    "changeService": "Change service",
     "from": "From",
     "to": "To",
     "destPlaceholder": {
@@ -138,25 +135,8 @@
       "gift": "Occasion, gift ideas, budget, message to include…",
       "camera": "Occasion, photos or video, number of people…"
     },
-    "cta": {
-      "hospital_visit": "Continue",
-      "driver": "Continue",
-      "companion": "Continue",
-      "property": "Request a visit",
-      "gift": "Discuss quote",
-      "camera": "Discuss quote"
-    },
     "payNote": "You'll pay {amount} when you book. The price is set by distance and time.",
     "multiDaySubCompanion": "Same companion every day",
-    "about": {
-      "hospital_visit": "We take you there, stay by your side, and bring you home.",
-      "driver": "Drop your loved one with care: we drive anywhere, in your car or ours.",
-      "companion": "A friendly face at the bank, an office or the shops.",
-      "property": "We look in on your home while you're away.",
-      "gift": "We arrange a surprise for someone you love and deliver it with care.",
-      "camera": "A photographer for your event, family day or celebration.",
-      "tour": "Pilgrimages and trips, with someone looking after you."
-    },
     "hospitalTime": "We take them to the hospital and bring them back. The visit itself is planned at about {count, plural, one {# hour} other {# hours}}."
   },
   "When": {
@@ -165,11 +145,13 @@
     "time": "Time",
     "leadNotice": "Requests need at least 48 hours' notice so our team can approve them.",
     "indiaTime": "Times are India time (IST), where the help takes place.",
-    "unavailable": "{time}, too soon"
+    "unavailable": "{time}, too soon",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month"
   },
   "ForWhom": {
-    "title": "Who is this help for?",
-    "me": "Me",
+    "title": "Who is this service for?",
+    "me": "Myself",
     "someoneElse": "Someone else",
     "firstName": "First name",
     "lastName": "Last name",
@@ -220,24 +202,31 @@
     "when": "When",
     "forWhom": "For whom",
     "details": "Details",
-    "submit": "Submit request",
+    "submitForApproval": "Send for admin approval",
+    "approvalNote": "Admin approval required. You pay only after our team approves the price and you accept it.",
     "submitting": "Submitting…",
     "incomplete": "Some details are missing. Go back and finish your request.",
     "leadTime": "That time is now less than 48 hours away. Pick a later time.",
     "invalid": "Some details aren't valid. Check your request and try again.",
     "invalidPhone": "The phone number for the person you're booking for isn't valid.",
-    "backToForm": "Back to your request",
     "emailLabel": "Where should we email your quote?",
     "emailHint": "We only use it for updates about your bookings.",
     "invalidEmail": "Enter a valid email address so we can send your quote.",
     "emailTaken": "That email belongs to another account. Sign in with it instead, or use a different one.",
     "backToTours": "Back to guided tours",
     "introPay": "Check the details, then pay to confirm your booking.",
-    "submitAndPay": "Book and pay {amount}",
+    "submitAndPay": "Pay {amount} securely",
     "price": "Price",
     "notes": "Directions",
     "outsideArea": "One of the places is outside the area we serve.",
-    "tooClose": "The pickup and destination are the same place. Check the addresses."
+    "tooClose": "The pickup and destination are the same place. Check the addresses.",
+    "summary": "Your booking",
+    "date": "Date",
+    "time": "Time",
+    "paymentMethod": "Payment method",
+    "paymentMethods": "Pay by card in a secure checkout.",
+    "secureNote": "Payments are encrypted. We never see your card details.",
+    "backToForm": "Back to your booking"
   },
   "Activity": {
     "title": "My bookings",
@@ -257,7 +246,8 @@
     "activity": "My bookings",
     "admin": "Admin",
     "jobs": "My jobs",
-    "tours": "Guided tours"
+    "tours": "Guided tours",
+    "services": "Services"
   },
   "Admin": {
     "title": "Admin",
@@ -375,7 +365,21 @@
       "failed": "We couldn’t start the payment. Please try again.",
       "verifyFailed": "We couldn’t confirm that payment. If you were charged, contact us and we’ll sort it out."
     },
-    "breakdown": "How we worked it out"
+    "breakdown": "How we worked it out",
+    "reference": "Booking ID",
+    "copyReference": "Copy booking ID",
+    "confirmedHeading": "Booking confirmed!",
+    "confirmedLead": "Your {service} has been booked and paid for.",
+    "emailSent": "We've emailed you a confirmation.",
+    "viewDetails": "View booking details",
+    "goHome": "Go to home",
+    "whatsNext": "What's next?",
+    "next": {
+      "assign": "Our team will assign a helper to your booking.",
+      "details": "We'll email you their details before the day.",
+      "updates": "We'll keep you updated on the day.",
+      "manage": "You can see this booking any time in My bookings."
+    }
   },
   "DevPay": {
     "title": "Test payment",
@@ -462,10 +466,26 @@
     "locationDenied": "We couldn't get your location. Search for the address or move the map.",
     "outsideIndia": "We only help in India. Move the map to a place in India."
   },
+  "Duration": {
+    "day": "{count, plural, one {# day} other {# days}}",
+    "hour": "{count, plural, one {# hr} other {# hrs}}",
+    "minute": "{count, plural, one {# min} other {# mins}}"
+  },
   "Price": {
     "loading": "Working out the price…",
     "distance": "Distance",
     "driveTime": "Drive time",
+    "parts": {
+      "serviceDrive": "Service drive",
+      "toBase": "Service to base",
+      "service": "Service hours"
+    },
+    "legs": {
+      "outbound": "Pickup → destination",
+      "back": "Destination → pickup",
+      "return": "Destination → our base",
+      "pickupReturn": "Pickup → our base"
+    },
     "lines": {
       "distance": "Vehicle · {quantity} at {rate}",
       "driveTime": "Driving · {quantity} at {rate}",
@@ -475,10 +495,12 @@
     "total": "Total",
     "suggested": "Estimate",
     "pending": "Our team will review this and email you a quote.",
+    "approvalNeeded": "Admin approval required. Our team will check this price and email you a quote to accept.",
     "vehicleTooFar": "We can't send a vehicle more than {max} from our base. Choose \"No vehicle\" instead.",
     "routeMap": "Map of the route",
     "reasons": {
       "noBase": "No base location is set for this market",
+      "tooLong": "The trip drives for more than 9 hours, including the drive back to our base",
       "noRates": "No rates are set for this market",
       "estimatedRoute": "Routing failed: distances are straight-line estimates",
       "multiDay": "Multi-day booking",
@@ -490,5 +512,196 @@
     "outsideArea": "One of the places is outside the area we serve.",
     "tooClose": "The pickup and destination are the same place.",
     "invalid": "We couldn't work out a price. Check the details."
+  },
+  "ServicePage": {
+    "backToServices": "Back to services",
+    "onThisPage": "On this page",
+    "tab": {
+      "overview": "Overview",
+      "included": "What's included",
+      "pricing": "Pricing",
+      "faqs": "FAQs"
+    },
+    "aboutTitle": "About this service",
+    "pricingNote": "Bookings need at least 48 hours' notice. You won't pay anything until you've seen the price.",
+    "readyTitle": "Ready to book?",
+    "readyBody": "Tell us who it's for, where and when. It takes a few minutes.",
+    "feature": {
+      "trained": "Trained companions",
+      "travel": "Safe travel options",
+      "onTime": "On-time service",
+      "updates": "Updates for family",
+      "verified": "Identity-checked helpers",
+      "yourCar": "Your car or ours",
+      "errands": "Help with errands",
+      "keys": "Keys handled with care",
+      "reports": "We tell you what we found",
+      "ideas": "Help choosing a gift",
+      "delivered": "Delivered in person",
+      "events": "Any occasion",
+      "photos": "Photos and video"
+    },
+    "hospital_visit": {
+      "cta": "Book a hospital visit",
+      "intro": "Professional support for hospital appointments, treatment and follow-ups.",
+      "photoAlt": "A helper walking with an older man into a hospital",
+      "about": "A trained companion takes your loved one to the hospital and stays with them through registration, consultations, tests and the pharmacy, then brings them home. We can drive them in our vehicle or in your own car.",
+      "included": [
+        "Pick-up and drop-off",
+        "Help at the hospital: queues, registration and paperwork",
+        "Someone to stay with your loved one",
+        "Collecting medicines",
+        "Updates for the family by email"
+      ],
+      "pricing": "The price depends on the distance and how long the visit takes. In our vehicle we charge by distance for the round trip and our drive back to base; in your own car, by the time spent driving. Both add the hours of the visit. Our team quotes trips with more than 9 hours of driving."
+    },
+    "driver": {
+      "cta": "Book a driver",
+      "intro": "A careful, identity-checked driver for appointments, family visits and longer trips.",
+      "photoAlt": "A driver smiling at the wheel of a car",
+      "about": "Book a driver to take your loved one wherever they need to go. We can drive your own car, or bring a small car or a van. For longer trips, book the same driver for several days.",
+      "included": [
+        "Door-to-door pick-up",
+        "Your car, or our car or van",
+        "A child seat on request",
+        "The same driver for multi-day trips"
+      ],
+      "pricing": "The price is set by the driving time, including the driver's trip back to our base, with a minimum charge that covers up to 4 hours. In our vehicle, there's also a charge per distance. Our team quotes multi-day trips and trips with more than 9 hours of driving."
+    },
+    "companion": {
+      "cta": "Book a companion",
+      "intro": "A friendly face at the bank, an office or the shops.",
+      "photoAlt": "A helper chatting with an older woman on a bench",
+      "about": "A companion goes with your loved one to the bank, government offices, the shops or anywhere they'd rather not go alone. They can help with forms, wait in queues and carry things.",
+      "included": [
+        "Company from door to door",
+        "Help with forms and queues",
+        "Carrying shopping and bags",
+        "By the hour, or for several days"
+      ],
+      "pricing": "Our team looks at what you need and emails you a quote. You pay only if you accept it."
+    },
+    "property": {
+      "cta": "Request a home visit",
+      "intro": "We look in on your home while you're away.",
+      "photoAlt": "A helper checking the front door of a house",
+      "about": "A trusted helper visits your home or property to check all is well, handles keys, and arranges any cleaning or repairs you ask for.",
+      "included": [
+        "A visit to check inside and out",
+        "Keys handled with care",
+        "Cleaning or repairs arranged on request",
+        "We tell you what we found"
+      ],
+      "pricing": "Our team looks at what you need and emails you a quote. You pay only if you accept it."
+    },
+    "gift": {
+      "cta": "Plan a surprise",
+      "intro": "We arrange a surprise for someone you love and deliver it with care.",
+      "photoAlt": "A wrapped gift being handed to a smiling woman",
+      "about": "Tell us the occasion and who it's for. We'll help choose the gift, add your message and deliver it in person on the day you pick.",
+      "included": [
+        "Help choosing the gift",
+        "Your message included",
+        "Delivered in person",
+        "On the day you choose"
+      ],
+      "pricing": "Our team looks at what you need and emails you a quote. You pay only if you accept it."
+    },
+    "camera": {
+      "cta": "Book a camera man",
+      "intro": "A photographer for your event, family day or celebration.",
+      "photoAlt": "A photographer taking a family photo",
+      "about": "Book a photographer for a birthday, a wedding, a family gathering or any day worth remembering. Tell us the occasion and what you'd like captured.",
+      "included": [
+        "Photos or video",
+        "As many hours as you need",
+        "Family events, celebrations and more"
+      ],
+      "pricing": "Our team looks at what you need and emails you a quote. You pay only if you accept it."
+    },
+    "faq": {
+      "notice": {
+        "q": "How far ahead do I need to book?",
+        "a": "At least 48 hours before the start, so our team can plan the right helper."
+      },
+      "someoneElse": {
+        "q": "Can I book for a parent or someone else?",
+        "a": "Yes. Choose \"Someone else\" and add their name and mobile number so the helper can call them on the day."
+      },
+      "payment": {
+        "q": "How do I pay?",
+        "a": "Online, in a secure checkout. When we can price a booking straight away you pay as you book. Otherwise our team emails you a quote, and you pay only if you accept it."
+      },
+      "where": {
+        "q": "Where do you work?",
+        "a": "All our services take place in India, and times are India time (IST)."
+      },
+      "helpers": {
+        "q": "Who are the helpers?",
+        "a": "Every helper is identity-checked before they work with us, and our team assigns the right person for your booking."
+      }
+    }
+  },
+  "Wizard": {
+    "progress": "Booking progress",
+    "done": "done",
+    "step": {
+      "details": "Details",
+      "when": "Date & time",
+      "options": "Options",
+      "review": "Review",
+      "payment": "Payment"
+    },
+    "back": "Back",
+    "backTo": "Back to {service}",
+    "missing": {
+      "details": "Some details are missing. Go back and tell us who it's for and where.",
+      "when": "Pick a day and time first."
+    },
+    "goTo": {
+      "details": "Go to details",
+      "when": "Choose date & time"
+    },
+    "detailsTitle": {
+      "hospital_visit": "Tell us about the visit",
+      "driver": "Tell us about the trip",
+      "companion": "Tell us what you need",
+      "property": "Tell us about the property",
+      "gift": "Tell us about the surprise",
+      "camera": "Tell us about the event"
+    },
+    "detailsSub": "Who it's for, where, and anything we should know.",
+    "whereTitle": {
+      "route": "Where from and to?",
+      "place": "Where?"
+    },
+    "nextWhen": "Next: Choose date & time",
+    "nextOptions": "Next: Choose options",
+    "nextReview": "Next: Review",
+    "nextReviewPay": "Next: Review & pay",
+    "incomplete": {
+      "details": "Add who it's for (with their name and mobile number if it's someone else) and the addresses. Pick each address from the list or the map.",
+      "when": "Pick a day and a time at least 48 hours from now."
+    },
+    "whenTitle": "Select date and time",
+    "whenSub": "Choose a day and a start time.",
+    "duration": "Service duration",
+    "optionsTitle": "Choose your service options",
+    "optionsSub": {
+      "hospital_visit": "Choose how we get there, and any extras.",
+      "driver": "Choose the vehicle, and any extras.",
+      "companion": "Tell us if you need the same companion for several days."
+    },
+    "extras": "Extras (optional)",
+    "pricing": "Working out…",
+    "about": "About {amount}",
+    "quoted": "Quote after review",
+    "priceTitle": "Your price",
+    "reviewSub": "Check the details before you book."
+  },
+  "Demo": {
+    "banner": "Demo with made-up sample data. Nothing here is real, and the buttons are switched off.",
+    "admin": "Admin demo",
+    "helper": "Helper demo"
   }
 }

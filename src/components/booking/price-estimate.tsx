@@ -5,7 +5,8 @@ import { Map, useMap, useMapsLibrary } from "@vis.gl/react-google-maps";
 import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { isRouteService } from "@/domain/booking";
 import { toMajor } from "@/domain/money";
-import type { PriceEstimate } from "@/domain/pricing";
+import { PRICE_PARTS, legPart, type PriceEstimate, type PriceLine, type TripLeg } from "@/domain/pricing";
+import { formatDuration } from "@/lib/duration";
 import { estimateDraft } from "@/server/estimates";
 import type { BookingDraft } from "./draft-context";
 import { MAPS_ENABLED } from "./maps-provider";
@@ -95,31 +96,63 @@ export function EstimateDetails({ estimate: e, forAdmin = false }: { estimate: P
   const money = useMoney();
   const distance = (value: number) =>
     format.number(value, { style: "unit", unit: e.distanceUnit, maximumFractionDigits: 1 });
-  const hours = (value: number) => format.number(value, { style: "unit", unit: "hour", maximumFractionDigits: 1 });
+  const td = useTranslations("Duration");
+  const hours = (value: number) => formatDuration(value, td);
 
   if (e.reasons.includes("noLocation")) {
     return <p className="text-[15px] text-muted">{forAdmin ? t("reasons.noLocation") : t("pending")}</p>;
   }
 
+  const legRow = (leg: TripLeg) => (
+    <div key={leg.kind} className="contents">
+      <dt className="text-muted">{t(`legs.${leg.kind}`)}</dt>
+      <dd className="text-right font-medium">
+        {distance(leg.distance)} · {hours(leg.driveHours)}
+      </dd>
+    </div>
+  );
+  const lineRow = (l: PriceLine) => (
+    <div key={`${l.part}-${l.kind}`} className="contents">
+      <dt className="text-muted">
+        {t(`lines.${l.kind}`, {
+          quantity: l.kind === "distance" ? distance(l.quantity) : hours(l.quantity),
+          rate: money(l.rateMinor, e.currency),
+        })}
+      </dt>
+      <dd className="text-right font-medium">{money(l.amountMinor, e.currency)}</dd>
+    </div>
+  );
+  const grid = "grid grid-cols-[auto_1fr] gap-x-4 gap-y-1";
+  // Hospital visits are shown in divisions: service drive, drive to base, service hours.
+  const divided = e.lines.some((l) => l.part) || e.legs?.some((l) => l.kind === "back");
+
   return (
     <div className="flex flex-col gap-2 text-[15px]">
-      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
-        <dt className="text-muted">{t("distance")}</dt>
-        <dd className="text-right font-medium">{distance(e.tripDistance)}</dd>
-        <dt className="text-muted">{t("driveTime")}</dt>
-        <dd className="text-right font-medium">{hours(Math.round(e.driveHours * 10) / 10)}</dd>
-        {e.lines.map((l) => (
-          <div key={l.kind} className="contents">
-            <dt className="text-muted">
-              {t(`lines.${l.kind}`, {
-                quantity: l.kind === "distance" ? distance(l.quantity) : hours(l.quantity),
-                rate: money(l.rateMinor, e.currency),
-              })}
-            </dt>
-            <dd className="text-right font-medium">{money(l.amountMinor, e.currency)}</dd>
-          </div>
-        ))}
-      </dl>
+      {divided ? (
+        PRICE_PARTS.map((part) => {
+          const legs = e.legs?.filter((l) => legPart(l.kind) === part) ?? [];
+          const lines = e.lines.filter((l) => l.part === part);
+          if (legs.length === 0 && lines.length === 0) return null;
+          return (
+            <section key={part} className="flex flex-col gap-1 pb-1">
+              <h3 className="font-bold">{t(`parts.${part}`)}</h3>
+              <dl className={grid}>
+                {legs.map(legRow)}
+                {lines.map(lineRow)}
+              </dl>
+            </section>
+          );
+        })
+      ) : (
+        <dl className={grid}>
+          {e.legs?.map(legRow)}
+          <dt className="text-muted">{t("distance")}</dt>
+          <dd className="text-right font-medium">{distance(e.tripDistance)}</dd>
+          <dt className="text-muted">{t("driveTime")}</dt>
+          <dd className="text-right font-medium">{hours(e.driveHours)}</dd>
+          {e.lines.map(lineRow)}
+        </dl>
+      )}
       {e.amountMinor !== null && (
         <p className="flex items-baseline justify-between border-t border-border pt-2">
           <span className="font-bold">{e.outcome === "auto" ? t("total") : t("suggested")}</span>
@@ -134,7 +167,9 @@ export function EstimateDetails({ estimate: e, forAdmin = false }: { estimate: P
             ))}
           </ul>
         ) : (
-          <p className="rounded-field bg-accent-soft px-3 py-2 text-sm font-semibold">{t("pending")}</p>
+          <p className="rounded-field bg-accent-soft px-3 py-2 text-sm font-semibold">
+            {e.amountMinor !== null ? t("approvalNeeded") : t("pending")}
+          </p>
         ))}
     </div>
   );

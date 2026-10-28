@@ -12,14 +12,17 @@ const input =
 /**
  * D4/D22/D23: the admin's two choices for a submitted request. `expiryPreview`
  * is null when the booking starts too soon to quote (it must be rejected).
+ * `demo` shows both forms disabled, for the public demo.
  */
 export function RequestActions({
+  demo = false,
   bookingId,
   currency,
   currencySymbol,
   expiryPreview,
   suggestedAmount,
 }: {
+  demo?: boolean;
   bookingId: string;
   currency: string;
   currencySymbol: string;
@@ -39,6 +42,7 @@ export function RequestActions({
     setError: (msg: string | null) => void,
   ) => {
     setError(null);
+    if (demo) return;
     startTransition(async () => {
       const result = await action();
       if (!result.ok) return setError(t(`errors.${result.error}`));
@@ -47,7 +51,7 @@ export function RequestActions({
   };
 
   return (
-    <div className="grid gap-5 lg:grid-cols-2">
+    <fieldset disabled={demo} className="grid gap-5 disabled:opacity-60 lg:grid-cols-2">
       <form
         className={`${card} flex flex-col gap-4 p-6`}
         aria-labelledby="quote-title"
@@ -125,6 +129,6 @@ export function RequestActions({
           {pending ? t("saving") : t("rejectButton")}
         </button>
       </form>
-    </div>
+    </fieldset>
   );
 }

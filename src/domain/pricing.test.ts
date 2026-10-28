@@ -3,6 +3,7 @@ import type { RegionPricing } from "@/config/pricing";
 import { haversineMeters, isTooClose, priceRoute, roundUpHours, type Leg, type PricingInput } from "./pricing";
 
 const india: RegionPricing = {
+  base: { lat: 9.9312, lng: 76.2673 },
   rates: { perDistance: 25_00, driveHour: 100_00, serviceHour: 500_00, driverMinimum: 400_00 },
 };
 const leg = (km: number, minutes: number, estimated = false): Leg => ({
@@ -18,6 +19,8 @@ const price = (input: Partial<PricingInput>, pricing = india) =>
       requestedHours: 4,
       multiDay: false,
       fromToTo: leg(12, 35),
+      // Base at the pickup: no extra leg, unless a test sets one.
+      toBase: leg(0, 0),
       ...input,
     },
     pricing,
@@ -35,31 +38,61 @@ describe("roundUpHours", () => {
 });
 
 describe("hospital visit", () => {
-  it("with a vehicle, charges 25/km over the round trip, nothing for base → pickup, plus the service hours", () => {
-    const est = price({ requestedHours: 2 });
+  it("with a vehicle, charges 25/km for the service drive and the drive to base, plus the service hours", () => {
+    const est = price({ requestedHours: 2, toBase: leg(10, 25) });
     expect(est.outcome).toBe("auto");
-    expect(est.tripDistance).toBe(24);
+    expect(est.tripDistance).toBe(34);
     expect(est.lines).toEqual([
-      { kind: "distance", quantity: 24, rateMinor: 25_00, amountMinor: 600_00 },
-      { kind: "serviceTime", quantity: 2, rateMinor: 500_00, amountMinor: 1000_00 },
+      { kind: "distance", part: "serviceDrive", quantity: 24, rateMinor: 25_00, amountMinor: 600_00 },
+      { kind: "distance", part: "toBase", quantity: 10, rateMinor: 25_00, amountMinor: 250_00 },
+      { kind: "serviceTime", part: "service", quantity: 2, rateMinor: 500_00, amountMinor: 1000_00 },
     ]);
-    expect(est.amountMinor).toBe(600_00 + 2 * 500_00);
+    expect(est.amountMinor).toBe(1850_00);
   });
 
   it("prices long trips automatically: there's no distance limit", () => {
     expect(price({ requestedHours: 2, fromToTo: leg(40, 70) })).toMatchObject({ outcome: "auto", reasons: [] });
   });
 
-  it("without a vehicle, charges round-trip drive hours plus the chosen service hours", () => {
-    const est = price({ withVehicle: false, requestedHours: 2 });
-    // 35 min each way = 70 min → 1.5 h billed.
-    expect(est.billedHours).toBe(1.5);
-    expect(est.amountMinor).toBe(1.5 * 100_00 + 2 * 500_00);
+  it("without a vehicle, charges each drive's hours, rounded up on its own, plus the service hours", () => {
+    const est = price({ withVehicle: false, requestedHours: 2, toBase: leg(10, 25) });
+    // Service drive: 35 min each way = 70 min → 1.5 h. To base: 25 min → 0.5 h.
+    expect(est.lines).toEqual([
+      { kind: "driveTime", part: "serviceDrive", quantity: 1.5, rateMinor: 100_00, amountMinor: 150_00 },
+      { kind: "driveTime", part: "toBase", quantity: 0.5, rateMinor: 100_00, amountMinor: 50_00 },
+      { kind: "serviceTime", part: "service", quantity: 2, rateMinor: 500_00, amountMinor: 1000_00 },
+    ]);
+    expect(est.billedHours).toBe(2);
+    expect(est.amountMinor).toBe(1200_00);
     expect(est.outcome).toBe("auto");
   });
 
+  it("adds the drive from the pickup back to our base, to the distance and the drive time", () => {
+    const est = price({ requestedHours: 2, toBase: leg(10, 25) });
+    expect(est.tripDistance).toBe(34);
+    expect(est.legs).toEqual([
+      { kind: "outbound", distance: 12, driveHours: 35 / 60 },
+      { kind: "back", distance: 12, driveHours: 35 / 60 },
+      { kind: "pickupReturn", distance: 10, driveHours: 25 / 60 },
+    ]);
+  });
+
+  it("prices more than 9 hours of driving in full, but needs an admin's approval", () => {
+    const long = { requestedHours: 2, fromToTo: leg(200, 4 * 60), toBase: leg(30, 61) };
+    expect(price(long)).toMatchObject({
+      outcome: "pendingAdmin",
+      reasons: ["tooLong"],
+      amountMinor: 400 * 25_00 + 30 * 25_00 + 2 * 500_00,
+    });
+    expect(price({ ...long, toBase: leg(30, 60) }).outcome).toBe("auto");
+  });
+
+  it("goes to an admin when the market has no base", () => {
+    expect(price({ toBase: null })).toMatchObject({ outcome: "pendingAdmin", reasons: ["noBase"], amountMinor: null });
+  });
+
   it("goes to an admin when the market has no rates", () => {
-    expect(price({}, { rates: null })).toMatchObject({
+    expect(price({}, { base: null, rates: null })).toMatchObject({
       outcome: "pendingAdmin",
       reasons: ["noRates"],
       amountMinor: null,
@@ -75,26 +108,69 @@ describe("hospital visit", () => {
 });
 
 describe("driver", () => {
-  it("in our vehicle, charges 25/km over the one-way trip, with no hourly charge", () => {
-    const est = price({ serviceType: "driver", withVehicle: true, fromToTo: leg(100, 5 * 60) });
-    expect(est.lines).toEqual([{ kind: "distance", quantity: 100, rateMinor: 25_00, amountMinor: 2500_00 }]);
-    expect(est.amountMinor).toBe(2500_00);
-    expect(est.billedHours).toBeNull();
+  const driver = (input: Partial<PricingInput>) => price({ serviceType: "driver", withVehicle: false, ...input });
+
+  it("counts the drive back from the destination to our base", () => {
+    const est = driver({ fromToTo: leg(100, 150), toBase: leg(80, 120) });
+    expect(est.tripDistance).toBe(180);
+    expect(est.driveHours).toBe(4.5);
+    expect(est.legs).toEqual([
+      { kind: "outbound", distance: 100, driveHours: 2.5 },
+      { kind: "return", distance: 80, driveHours: 2 },
+    ]);
+    expect(est.billedHours).toBe(4.5);
+  });
+
+  it("charges the 400 minimum for up to 4 hours of driving", () => {
+    expect(driver({ fromToTo: leg(10, 20), toBase: leg(10, 20) }).lines).toEqual([
+      { kind: "minimum", quantity: 1, rateMinor: 400_00, amountMinor: 400_00 },
+    ]);
+    expect(driver({ fromToTo: leg(100, 120), toBase: leg(100, 120) }).amountMinor).toBe(400_00);
+  });
+
+  it("charges 100/hr once the driving is over 4 hours, rounded up to the half hour", () => {
+    const est = driver({ fromToTo: leg(120, 150), toBase: leg(100, 100) });
+    // 250 min → 4.5 h billed.
+    expect(est.lines).toEqual([{ kind: "driveTime", quantity: 4.5, rateMinor: 100_00, amountMinor: 450_00 }]);
     expect(est.outcome).toBe("auto");
   });
 
-  it("in our vehicle, never charges less than 400", () => {
-    const est = price({ serviceType: "driver", withVehicle: true, fromToTo: leg(10, 20) });
-    expect(est.lines).toEqual([{ kind: "minimum", quantity: 1, rateMinor: 400_00, amountMinor: 400_00 }]);
-    expect(est.amountMinor).toBe(400_00);
+  it("in our vehicle, adds 25/km over the same trip", () => {
+    const est = driver({ withVehicle: true, fromToTo: leg(100, 150), toBase: leg(80, 150) });
+    expect(est.lines).toEqual([
+      { kind: "driveTime", quantity: 5, rateMinor: 100_00, amountMinor: 500_00 },
+      { kind: "distance", quantity: 180, rateMinor: 25_00, amountMinor: 4500_00 },
+    ]);
+    expect(est.amountMinor).toBe(5000_00);
   });
 
-  it("in the customer's own car, charges a flat 400 whatever the distance", () => {
-    expect(price({ serviceType: "driver", withVehicle: false, fromToTo: leg(380, 6 * 60) }).amountMinor).toBe(400_00);
+  it("in our vehicle, adds the distance on top of the minimum", () => {
+    expect(driver({ withVehicle: true, fromToTo: leg(10, 20), toBase: leg(6, 15) }).amountMinor).toBe(
+      400_00 + 16 * 25_00,
+    );
+  });
+
+  it("prices more than 9 hours of driving in full, but needs an admin's approval", () => {
+    const est = driver({ fromToTo: leg(300, 5 * 60), toBase: leg(250, 4 * 60 + 1) });
+    // 9 h 1 min → 9.5 h billed.
+    expect(est).toMatchObject({ outcome: "pendingAdmin", reasons: ["tooLong"], amountMinor: 950_00 });
+    expect(driver({ fromToTo: leg(300, 5 * 60), toBase: leg(250, 4 * 60) }).amountMinor).toBe(900_00);
+  });
+
+  it("goes to an admin when the market has no driver base", () => {
+    expect(driver({ toBase: null })).toMatchObject({
+      outcome: "pendingAdmin",
+      reasons: ["noBase"],
+      amountMinor: null,
+    });
+  });
+
+  it("flags a straight-line return leg for an admin", () => {
+    expect(driver({ toBase: leg(10, 20, true) }).reasons).toEqual(["estimatedRoute"]);
   });
 
   it("sends multi-day trips to an admin", () => {
-    expect(price({ serviceType: "driver", multiDay: true })).toMatchObject({
+    expect(driver({ multiDay: true, toBase: leg(10, 20) })).toMatchObject({
       outcome: "pendingAdmin",
       reasons: ["multiDay"],
       amountMinor: null,
@@ -123,7 +199,14 @@ describe("distances", () => {
 
   it("reports distances in miles for mile markets", () => {
     const est = priceRoute(
-      { serviceType: "driver", withVehicle: false, requestedHours: 4, multiDay: false, fromToTo: leg(16.09344, 30) },
+      {
+        serviceType: "driver",
+        withVehicle: false,
+        requestedHours: 4,
+        multiDay: false,
+        fromToTo: leg(8.04672, 15),
+        toBase: leg(8.04672, 15),
+      },
       india,
       "GBP",
       "mile",

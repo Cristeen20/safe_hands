@@ -7,27 +7,36 @@ test("a guest builds a request, signs in, submits it, and an admin sees it", asy
 }) => {
   const destination = `St. James Hospital ${Date.now()}`;
 
-  // Build the request as a guest.
+  // Home → the service's page → the booking steps, as a guest.
   await page.goto("/en-GB");
   await page.getByRole("link", { name: /Book a hospital visit/ }).click();
-  await expect(page).toHaveURL(/\/en-GB\/book$/);
+  await expect(page).toHaveURL(/\/en-GB\/services\/hospital-visit$/);
   await expect(page.getByRole("heading", { name: "Hospital visit", level: 1 })).toBeVisible();
-  await expect(page.getByText("We take them to the hospital and bring them back.", { exact: false })).toBeVisible();
-  await page.getByLabel("From", { exact: true }).fill("24 Elm Street, SW1A 1AA");
-  await page.getByLabel("To", { exact: true }).fill(destination);
-  await page.getByRole("button", { name: "More people" }).click();
-  await page.getByLabel(/I need a bystander/).check();
+  await page.getByRole("link", { name: "Book a hospital visit" }).first().click();
+  await expect(page).toHaveURL(/\/en-GB\/book$/);
 
-  await page.getByRole("group", { name: "Pick a day" }).getByRole("button").nth(1).click();
-  await page.getByRole("group", { name: "Time" }).getByRole("button", { name: "19:00" }).click();
-
+  // 1. Details
+  await expect(page.getByRole("heading", { name: "Tell us about the visit", level: 1 })).toBeVisible();
   await page.getByRole("button", { name: "Someone else" }).click();
   await page.getByLabel("First name").fill("Anu");
   await page.getByLabel("Phone").fill("98765 43210"); // read as Indian on every site (D30)
-  await expect(page.getByRole("complementary")).toContainText("Anu");
+  await page.getByLabel("From", { exact: true }).fill("24 Elm Street, SW1A 1AA");
+  await page.getByLabel("To", { exact: true }).fill(destination);
+  await page.getByRole("button", { name: /Next: Choose date & time/ }).click();
+
+  // 2. Date & time
+  await expect(page).toHaveURL(/\/en-GB\/book\/when$/);
+  await page.getByRole("group", { name: "Pick a day" }).getByRole("button", { disabled: false }).nth(1).click();
+  await page.getByRole("group", { name: "Time" }).getByRole("button", { name: "19:00" }).click();
+  await page.getByRole("button", { name: /Next: Choose options/ }).click();
+
+  // 3. Options
+  await expect(page).toHaveURL(/\/en-GB\/book\/options$/);
+  await page.getByRole("button", { name: "More people" }).click();
+  await page.getByLabel(/I need a bystander/).check();
 
   // Reviewing requires sign-in, then returns here.
-  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page.getByRole("button", { name: /Next: Review/ }).click();
   await expect(page).toHaveURL(/\/en-GB\/sign-in\?next=/);
   const customer = randomUkMobile();
   await signInOnPage(page, customer.typed, customer.e164);
@@ -37,10 +46,10 @@ test("a guest builds a request, signs in, submits it, and an admin sees it", asy
   await expect(page.getByText("2 people accompanying · Needs a bystander", { exact: false })).toBeVisible();
 
   // Phone-only customers must give an email for the quote (D11).
-  await page.getByRole("button", { name: "Submit request" }).click();
+  await page.getByRole("button", { name: "Send for admin approval" }).click();
   await expect(page.getByText("Enter a valid email address so we can send your quote.")).toBeVisible();
   await page.getByLabel("Where should we email your quote?").fill(`e2e-${Date.now()}@example.co.uk`);
-  await page.getByRole("button", { name: "Submit request" }).click();
+  await page.getByRole("button", { name: "Send for admin approval" }).click();
   await expect(page).toHaveURL(/\/en-GB\/activity$/);
   await expect(page.getByText(destination)).toBeVisible();
   await expect(page.getByText("Awaiting approval")).toBeVisible();
@@ -93,28 +102,23 @@ test("the server rejects a request less than 48 hours ahead (D17)", async ({ pag
   });
   await page.reload();
   await page.getByLabel("Where should we email your quote?").fill(`e2e-${Date.now()}@example.co.uk`);
-  await page.getByRole("button", { name: "Submit request" }).click();
+  await page.getByRole("button", { name: "Send for admin approval" }).click();
   await expect(page.getByText("less than 48 hours away")).toBeVisible();
 });
 
 test("each service asks for its own details", async ({ page }) => {
-  const describe = page.getByRole("region", { name: "Describe the service" });
+  await page.goto("/en-GB/services/driver");
+  await page.getByRole("link", { name: "Book a driver" }).first().click();
+  await expect(page.getByRole("heading", { name: "Tell us about the trip", level: 1 })).toBeVisible();
+  await expect(page.getByLabel("From", { exact: true })).toBeVisible();
+  // Drivers have an options step (vehicle, extras); it needs the earlier steps first.
+  await page.goto("/en-GB/book/options");
+  await expect(page.getByText("Some details are missing.")).toBeVisible();
 
-  await page.goto("/en-GB");
-  await page.getByRole("link", { name: /Book a driver/ }).click();
-  await expect(page.getByRole("heading", { name: "Driver", level: 1 })).toBeVisible();
-  // Drivers are priced by distance, so there's no hours picker.
-  await expect(describe.getByText("Hours needed")).toHaveCount(0);
-  await expect(describe.getByRole("button", { name: /My own car/ })).toBeVisible();
-  await describe.getByLabel(/Needed for multiple days/).check();
-  await expect(describe.getByText("Number of days")).toBeVisible();
-
-  // The service is chosen on Home; /book has no service picker.
-  await page.getByRole("link", { name: "Change service" }).click();
-  await expect(page).toHaveURL(/\/en-GB#services$/);
-  await page.getByRole("link", { name: /Request a home visit/ }).click();
+  // Property checks have one address and no options step.
+  await page.goto("/en-GB/services/property");
+  await page.getByRole("link", { name: "Request a home visit" }).first().click();
   await expect(page.getByPlaceholder("Address of the home to visit")).toBeVisible();
   await expect(page.getByLabel("From", { exact: true })).toHaveCount(0);
-  await expect(describe.getByText("Vehicle", { exact: true })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Request a visit" })).toBeVisible();
+  await expect(page.getByText("Options", { exact: true })).toHaveCount(0);
 });

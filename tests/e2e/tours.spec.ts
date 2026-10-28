@@ -15,7 +15,7 @@ test("en-IN: pre-booking a package sends a request and adds to its count", async
   await signInWithEmailOnPage(page, `e2e-tour-${Date.now()}@example.in`);
   await expect(page).toHaveURL(/\/en-IN\/book\/review$/);
   await expect(page.getByText("Guided tour · Package · 3 days · 3 people")).toBeVisible();
-  await page.getByRole("button", { name: "Submit request" }).click();
+  await page.getByRole("button", { name: "Send for admin approval" }).click();
   await expect(page).toHaveURL(/\/en-IN\/activity$/);
   await expect(page.getByText("Munnar + Vagamon").first()).toBeVisible();
 
@@ -35,7 +35,7 @@ test("custom trips need a place and a date", async ({ page }) => {
 
   await page.getByLabel("Location").fill("Lake District");
   await page.getByLabel("I need a stay").check();
-  await page.getByRole("group", { name: "Pick a day" }).getByRole("button").first().click();
+  await page.getByRole("group", { name: "Pick a day" }).getByRole("button", { disabled: false }).first().click();
   await page.getByRole("group", { name: "Time" }).getByRole("button", { name: "19:00" }).click();
   await page.getByRole("button", { name: "Discuss quote" }).click();
   await expect(page).toHaveURL(/\/en-GB\/sign-in\?next=/);

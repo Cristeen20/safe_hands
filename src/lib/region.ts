@@ -10,6 +10,18 @@ export type Region = (typeof REGIONS)[number];
 export const SERVICE_COUNTRY = "IN" satisfies Region;
 export const SERVICE_TIME_ZONE = "Asia/Kolkata";
 
+/**
+ * A box around India. A point outside it can't be in India, so the server
+ * refuses it even when geocoding is unavailable. Points inside are still
+ * geocoded, since the box also covers parts of India's neighbours.
+ */
+const SERVICE_BOUNDS = { south: 6.5, north: 37.2, west: 68.0, east: 97.5 };
+
+export function inServiceBounds(p: { lat: number; lng: number }): boolean {
+  const b = SERVICE_BOUNDS;
+  return p.lat >= b.south && p.lat <= b.north && p.lng >= b.west && p.lng <= b.east;
+}
+
 export const LOCALES = ["en-US", "en-CA", "en-GB", "en-IN"] as const;
 export type AppLocale = (typeof LOCALES)[number];
 
